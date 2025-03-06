@@ -124,6 +124,19 @@ class TeamCreateSerializer(serializers.ModelSerializer):
         model = Team
         fields = ('name', 'logo', 'description', 'level')
     
+    def validate_level(self, value):
+        # 프론트엔드에서 보내는 값을 백엔드 값으로 변환
+        level_map = {
+            'beginner': 'BEG',
+            'intermediate': 'INT',
+            'advanced': 'ADV',
+            'professional': 'PRO'
+        }
+        
+        if value in level_map:
+            return level_map[value]
+        return value
+    
     def create(self, validated_data):
         user = self.context['request'].user
         team = Team.objects.create(owner=user, **validated_data)

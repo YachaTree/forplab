@@ -120,8 +120,8 @@ export default createStore({
     async login({ commit, dispatch }, credentials) {
       try {
         const response = await authAPI.login(credentials)
-        const { access } = response.data
-        commit('SET_TOKEN', access)
+        const token = response.data.access
+        commit('SET_TOKEN', token)
         dispatch('fetchUserProfile')
         return response
       } catch (error) {
