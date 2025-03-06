@@ -8,11 +8,12 @@ const Register = () => import('@/views/Register.vue');
 const MatchList = () => import('@/views/matches/MatchList.vue');
 const MatchDetail = () => import('@/views/matches/MatchDetail.vue');
 const MatchCreate = () => import('@/views/matches/MatchCreate.vue');
+import VenueList from '../views/venues/VenueList.vue'
+import VenueDetail from '../views/venues/VenueDetail.vue'
 
 // 임시 컴포넌트 (나중에 구현 예정)
 const NotFound = { template: '<div>페이지를 찾을 수 없습니다.</div>' };
 const Profile = { template: '<div>프로필 페이지 (개발 중)</div>' };
-const VenueList = { template: '<div>구장 목록 페이지 (개발 중)</div>' };
 const TeamList = { template: '<div>팀 목록 페이지 (개발 중)</div>' };
 
 const routes = [
@@ -59,7 +60,13 @@ const routes = [
   {
     path: '/venues',
     name: 'VenueList',
-    component: VenueList,
+    component: VenueList
+  },
+  {
+    path: '/venues/:id',
+    name: 'VenueDetail',
+    component: VenueDetail,
+    props: true
   },
   {
     path: '/teams',
