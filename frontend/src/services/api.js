@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // API 기본 URL 설정
-const API_URL = 'http://localhost:8000/api';
+const API_URL = 'http://localhost:8000/api/v1';
 
 // axios 인스턴스 생성
 const apiClient = axios.create({
@@ -16,7 +16,7 @@ apiClient.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
     if (token) {
-      config.headers.Authorization = `Token ${token}`;
+      config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
@@ -75,19 +75,19 @@ apiClient.interceptors.response.use(
 // 인증 관련 API
 export const authAPI = {
   login(credentials) {
-    return apiClient.post('/auth/login/', credentials);
+    return apiClient.post('/users/token/', credentials);
   },
   register(userData) {
-    return apiClient.post('/auth/register/', userData);
+    return apiClient.post('/users/register/', userData);
   },
   logout() {
-    return apiClient.post('/auth/logout/');
+    return apiClient.post('/users/logout/');
   },
   getProfile() {
-    return apiClient.get('/auth/profile/');
+    return apiClient.get('/users/profile/');
   },
   updateProfile(profileData) {
-    return apiClient.put('/auth/profile/', profileData);
+    return apiClient.put('/users/profile/update/', profileData);
   },
 };
 
