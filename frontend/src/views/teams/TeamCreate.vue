@@ -241,8 +241,9 @@ export default {
         // FormData 객체 생성 (파일 업로드를 위해)
         const formData = new FormData();
         formData.append('name', this.form.name);
-        formData.append('region', this.form.region);
         formData.append('level', this.form.level);
+        formData.append('region', this.form.region);
+        formData.append('is_recruiting', this.form.is_recruiting);
         
         if (this.form.description) {
           formData.append('description', this.form.description);
@@ -252,23 +253,30 @@ export default {
           formData.append('logo', this.form.logo);
         }
         
-        formData.append('is_recruiting', this.form.is_recruiting);
-        formData.append('is_private', this.form.is_private);
-        
         // 팀 생성 API 호출
         const response = await this.$store.dispatch('createTeam', formData);
         
         // 성공 메시지 표시
-        this.$toast.success('팀이 성공적으로 생성되었습니다.');
+        alert('팀이 성공적으로 생성되었습니다.');
         
-        // 생성된 팀 상세 페이지로 이동
-        this.$router.push({ name: 'TeamDetail', params: { id: response.data.id } });
+        // 응답 데이터 확인
+        console.log('팀 생성 응답:', response);
+        
+        // 생성된 팀 ID 확인
+        if (response && response.data && response.data.id) {
+          // 생성된 팀 상세 페이지로 이동
+          this.$router.push({ name: 'TeamDetail', params: { id: response.data.id } });
+        } else {
+          // ID가 없으면 팀 목록 페이지로 이동
+          this.$router.push({ name: 'TeamList' });
+        }
       } catch (error) {
         console.error('팀 생성 실패:', error);
         
         // 서버 응답 에러 처리
-        if (error.response && error.response.data) {
+        if (error && error.response && error.response.data) {
           const serverErrors = error.response.data;
+          console.log('서버 오류 응답:', serverErrors);
           
           // 필드별 에러 메시지 설정
           for (const field in serverErrors) {
@@ -280,7 +288,7 @@ export default {
           }
         } else {
           // 일반 에러 메시지
-          this.$toast.error('팀 생성에 실패했습니다. 다시 시도해주세요.');
+          alert('팀 생성에 실패했습니다. 다시 시도해주세요.');
         }
       } finally {
         this.isSubmitting = false;

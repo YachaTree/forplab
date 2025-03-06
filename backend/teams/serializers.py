@@ -126,19 +126,14 @@ class TeamCreateSerializer(serializers.ModelSerializer):
     """
     class Meta:
         model = Team
-        fields = ('name', 'logo', 'description', 'level', 'region', 'is_recruiting')
+        fields = ('id', 'name', 'logo', 'description', 'level', 'region', 'is_recruiting')
+        read_only_fields = ('id',)
     
-    def validate_level(self, value):
-        # 프론트엔드에서 보내는 값을 백엔드 값으로 변환
-        level_map = {
-            'beginner': 'BEG',
-            'intermediate': 'INT',
-            'advanced': 'ADV',
-            'professional': 'PRO'
-        }
-        
-        if value in level_map:
-            return level_map[value]
+    def validate_region(self, value):
+        # 유효한 지역인지 확인
+        valid_regions = ['seoul', 'gyeonggi', 'incheon', 'other']
+        if value not in valid_regions:
+            raise serializers.ValidationError(f"유효하지 않은 지역입니다. 유효한 값: {', '.join(valid_regions)}")
         return value
     
     def create(self, validated_data):
