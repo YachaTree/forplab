@@ -46,11 +46,38 @@ class TeamCreateView(generics.CreateAPIView):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = TeamCreateSerializer
     
+    def create(self, request, *args, **kwargs):
+        # 프론트엔드에서 보내는 level 값을 백엔드 값으로 변환
+        data = request.data.copy()
+        if 'level' in data:
+            level_map = {
+                'beginner': 'BEG',
+                'intermediate': 'INT',
+                'advanced': 'ADV',
+                'professional': 'PRO'
+            }
+            if data['level'] in level_map:
+                data['level'] = level_map[data['level']]
+        
+        # 불리언 필드 처리
+        if 'is_recruiting' in data:
+            if data['is_recruiting'].lower() == 'true':
+                data['is_recruiting'] = True
+            elif data['is_recruiting'].lower() == 'false':
+                data['is_recruiting'] = False
+        
+        # 수정된 데이터로 요청 객체 업데이트
+        request._full_data = data
+        
+        return super().create(request, *args, **kwargs)
+    
     def perform_create(self, serializer):
         serializer.save()
 
 class TeamDetailView(generics.RetrieveAPIView):
     permission_classes = [permissions.IsAuthenticated]
+    serializer_class = TeamDetailSerializer
+    queryset = Team.objects.all()
 
 class TeamUpdateView(generics.UpdateAPIView):
     permission_classes = [permissions.IsAuthenticated]
