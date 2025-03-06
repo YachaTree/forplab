@@ -331,7 +331,7 @@ export default createStore({
       }
     },
     
-    async createTeam({ dispatch }, teamData) {
+    async createTeam(_, teamData) {
       try {
         const response = await teamAPI.createTeam(teamData)
         return response
@@ -365,7 +365,7 @@ export default createStore({
       }
     },
     
-    async joinTeam({ dispatch }, { id, requestData }) {
+    async joinTeam(_, { id, requestData }) {
       try {
         const response = await teamAPI.joinTeam(id, requestData)
         return response
@@ -375,7 +375,7 @@ export default createStore({
       }
     },
     
-    async leaveTeam({ dispatch }, id) {
+    async leaveTeam(_, id) {
       try {
         const response = await teamAPI.leaveTeam(id)
         return response
@@ -385,7 +385,7 @@ export default createStore({
       }
     },
     
-    async cancelJoinRequest({ dispatch }, id) {
+    async cancelJoinRequest(_, id) {
       try {
         // 가입 신청 취소는 팀 탈퇴와 동일한 API 사용
         const response = await teamAPI.leaveTeam(id)
@@ -396,7 +396,7 @@ export default createStore({
       }
     },
     
-    async getTeamMembers({ commit }, id) {
+    async getTeamMembers(_, id) {
       try {
         const response = await teamAPI.getMembers(id)
         return response
@@ -406,7 +406,7 @@ export default createStore({
       }
     },
     
-    async getJoinRequests({ commit }, id) {
+    async getJoinRequests(_, id) {
       try {
         const response = await teamAPI.getJoinRequests(id)
         return response
@@ -416,7 +416,7 @@ export default createStore({
       }
     },
     
-    async approveJoinRequest({ dispatch }, { teamId, requestId }) {
+    async approveJoinRequest(_, { teamId, requestId }) {
       try {
         const response = await teamAPI.approveJoinRequest(teamId, requestId)
         return response
@@ -426,7 +426,7 @@ export default createStore({
       }
     },
     
-    async rejectJoinRequest({ dispatch }, { teamId, requestId }) {
+    async rejectJoinRequest(_, { teamId, requestId }) {
       try {
         const response = await teamAPI.rejectJoinRequest(teamId, requestId)
         return response
