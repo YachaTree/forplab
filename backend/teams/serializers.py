@@ -62,10 +62,12 @@ class TeamSerializer(serializers.ModelSerializer):
     owner = UserSimpleSerializer(read_only=True)
     members_count = serializers.SerializerMethodField()
     level_display = serializers.CharField(source='get_level_display', read_only=True)
+    region_display = serializers.CharField(source='get_region_display', read_only=True)
     
     class Meta:
         model = Team
         fields = ('id', 'name', 'logo', 'description', 'level', 'level_display',
+                  'region', 'region_display', 'is_recruiting',
                   'rating', 'owner', 'members_count', 'matches_played', 'wins',
                   'draws', 'losses', 'goals_scored', 'goals_conceded',
                   'created_at')
@@ -81,6 +83,7 @@ class TeamDetailSerializer(serializers.ModelSerializer):
     members = serializers.SerializerMethodField()
     join_requests = serializers.SerializerMethodField()
     level_display = serializers.CharField(source='get_level_display', read_only=True)
+    region_display = serializers.CharField(source='get_region_display', read_only=True)
     win_rate = serializers.FloatField(read_only=True)
     goal_difference = serializers.IntegerField(read_only=True)
     is_member = serializers.SerializerMethodField()
@@ -89,6 +92,7 @@ class TeamDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Team
         fields = ('id', 'name', 'logo', 'description', 'level', 'level_display',
+                  'region', 'region_display', 'is_recruiting',
                   'rating', 'owner', 'members', 'join_requests', 'matches_played',
                   'wins', 'draws', 'losses', 'goals_scored', 'goals_conceded',
                   'win_rate', 'goal_difference', 'is_member', 'is_owner',
@@ -122,7 +126,7 @@ class TeamCreateSerializer(serializers.ModelSerializer):
     """
     class Meta:
         model = Team
-        fields = ('name', 'logo', 'description', 'level')
+        fields = ('name', 'logo', 'description', 'level', 'region', 'is_recruiting')
     
     def validate_level(self, value):
         # 프론트엔드에서 보내는 값을 백엔드 값으로 변환
