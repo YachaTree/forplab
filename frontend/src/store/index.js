@@ -15,6 +15,9 @@ export default createStore({
     venues: [],
     venuesLoading: false,
     venuesError: null,
+    currentVenue: null,
+    venueLoading: false,
+    venueError: null,
     teams: [],
     teamsLoading: false,
     teamsError: null
@@ -31,6 +34,9 @@ export default createStore({
     venues: state => state.venues,
     venuesLoading: state => state.venuesLoading,
     venuesError: state => state.venuesError,
+    currentVenue: state => state.currentVenue,
+    venueLoading: state => state.venueLoading,
+    venueError: state => state.venueError,
     teams: state => state.teams,
     teamsLoading: state => state.teamsLoading,
     teamsError: state => state.teamsError
@@ -74,6 +80,15 @@ export default createStore({
     },
     SET_VENUES_ERROR(state, error) {
       state.venuesError = error
+    },
+    SET_CURRENT_VENUE(state, venue) {
+      state.currentVenue = venue
+    },
+    SET_VENUE_LOADING(state, isLoading) {
+      state.venueLoading = isLoading
+    },
+    SET_VENUE_ERROR(state, error) {
+      state.venueError = error
     },
     SET_TEAMS(state, teams) {
       state.teams = teams
@@ -229,7 +244,7 @@ export default createStore({
       commit('SET_VENUES_ERROR', null)
       try {
         const response = await venueAPI.getVenues(params)
-        commit('SET_VENUES', response.data)
+        commit('SET_VENUES', response.data.results || response.data)
         return response
       } catch (error) {
         console.error('구장 목록 조회 실패:', error)
@@ -237,6 +252,34 @@ export default createStore({
         throw error
       } finally {
         commit('SET_VENUES_LOADING', false)
+      }
+    },
+    
+    async fetchVenue({ commit }, id) {
+      commit('SET_VENUE_LOADING', true)
+      commit('SET_VENUE_ERROR', null)
+      try {
+        const response = await venueAPI.getVenue(id)
+        commit('SET_CURRENT_VENUE', response.data)
+        return response
+      } catch (error) {
+        console.error('구장 상세 조회 실패:', error)
+        commit('SET_VENUE_ERROR', error.message || '구장 정보를 불러오는데 실패했습니다.')
+        throw error
+      } finally {
+        commit('SET_VENUE_LOADING', false)
+      }
+    },
+    
+    async createVenueReview({ dispatch }, { venueId, reviewData }) {
+      try {
+        const response = await venueAPI.createVenueReview(venueId, reviewData)
+        // 리뷰 등록 후 구장 정보 다시 조회
+        dispatch('fetchVenue', venueId)
+        return response
+      } catch (error) {
+        console.error('구장 리뷰 등록 실패:', error)
+        throw error
       }
     },
 
