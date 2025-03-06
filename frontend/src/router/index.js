@@ -1,19 +1,19 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import store from '@/store';
 
-// 페이지 컴포넌트 (나중에 구현 예정)
+// 페이지 컴포넌트 (현재 구현된 것만 포함)
 const Home = () => import('@/views/Home.vue');
 const Login = () => import('@/views/Login.vue');
 const Register = () => import('@/views/Register.vue');
-const Profile = () => import('@/views/Profile.vue');
 const MatchList = () => import('@/views/matches/MatchList.vue');
 const MatchDetail = () => import('@/views/matches/MatchDetail.vue');
 const MatchCreate = () => import('@/views/matches/MatchCreate.vue');
-const VenueList = () => import('@/views/venues/VenueList.vue');
-const VenueDetail = () => import('@/views/venues/VenueDetail.vue');
-const TeamList = () => import('@/views/teams/TeamList.vue');
-const TeamDetail = () => import('@/views/teams/TeamDetail.vue');
-const TeamCreate = () => import('@/views/teams/TeamCreate.vue');
+
+// 임시 컴포넌트 (나중에 구현 예정)
+const NotFound = { template: '<div>페이지를 찾을 수 없습니다.</div>' };
+const Profile = { template: '<div>프로필 페이지 (개발 중)</div>' };
+const VenueList = { template: '<div>구장 목록 페이지 (개발 중)</div>' };
+const TeamList = { template: '<div>팀 목록 페이지 (개발 중)</div>' };
 
 const routes = [
   {
@@ -45,16 +45,16 @@ const routes = [
     component: MatchList,
   },
   {
-    path: '/matches/:id',
-    name: 'MatchDetail',
-    component: MatchDetail,
-    props: true,
-  },
-  {
     path: '/matches/create',
     name: 'MatchCreate',
     component: MatchCreate,
     meta: { requiresAuth: true },
+  },
+  {
+    path: '/matches/:id',
+    name: 'MatchDetail',
+    component: MatchDetail,
+    props: true,
   },
   {
     path: '/venues',
@@ -62,31 +62,14 @@ const routes = [
     component: VenueList,
   },
   {
-    path: '/venues/:id',
-    name: 'VenueDetail',
-    component: VenueDetail,
-    props: true,
-  },
-  {
     path: '/teams',
     name: 'TeamList',
     component: TeamList,
   },
   {
-    path: '/teams/:id',
-    name: 'TeamDetail',
-    component: TeamDetail,
-    props: true,
-  },
-  {
-    path: '/teams/create',
-    name: 'TeamCreate',
-    component: TeamCreate,
-    meta: { requiresAuth: true },
-  },
-  {
     path: '/:pathMatch(.*)*',
-    redirect: '/',
+    name: 'NotFound',
+    component: NotFound,
   },
 ];
 

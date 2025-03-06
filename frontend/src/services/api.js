@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // API 기본 URL 설정
-const API_URL = 'http://localhost:8000/api/v1';
+const API_URL = 'http://localhost:8000/api';
 
 // axios 인스턴스 생성
 const apiClient = axios.create({
@@ -16,7 +16,7 @@ apiClient.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
     if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+      config.headers.Authorization = `Token ${token}`;
     }
     return config;
   },
@@ -74,98 +74,104 @@ apiClient.interceptors.response.use(
 
 // 인증 관련 API
 export const authAPI = {
-  // 로그인
-  login: (username, password) => {
-    return apiClient.post('/users/token/', { username, password });
+  login(credentials) {
+    return apiClient.post('/auth/login/', credentials);
   },
-  
-  // 회원가입
-  register: (userData) => {
-    return apiClient.post('/users/register/', userData);
+  register(userData) {
+    return apiClient.post('/auth/register/', userData);
   },
-  
-  // 사용자 프로필 조회
-  getProfile: () => {
-    return apiClient.get('/users/profile/');
+  logout() {
+    return apiClient.post('/auth/logout/');
   },
-  
-  // 사용자 프로필 업데이트
-  updateProfile: (profileData) => {
-    return apiClient.put('/users/profile/update/', profileData);
+  getProfile() {
+    return apiClient.get('/auth/profile/');
   },
-  
-  // 비밀번호 변경
-  changePassword: (passwordData) => {
-    return apiClient.post('/users/password/change/', passwordData);
+  updateProfile(profileData) {
+    return apiClient.put('/auth/profile/', profileData);
   },
 };
 
 // 매치 관련 API
 export const matchAPI = {
-  // 매치 목록 조회
-  getMatches: (params) => {
+  getMatches(params) {
     return apiClient.get('/matches/', { params });
   },
-  
-  // 매치 상세 조회
-  getMatch: (id) => {
+  getMatch(id) {
     return apiClient.get(`/matches/${id}/`);
   },
-  
-  // 매치 생성
-  createMatch: (matchData) => {
+  createMatch(matchData) {
     return apiClient.post('/matches/create/', matchData);
   },
-  
-  // 매치 참가
-  joinMatch: (matchId) => {
-    return apiClient.post(`/matches/${matchId}/join/`);
+  updateMatch(id, matchData) {
+    return apiClient.put(`/matches/${id}/update/`, matchData);
   },
-  
-  // 매치 참가 취소
-  leaveMatch: (matchId) => {
-    return apiClient.post(`/matches/${matchId}/leave/`);
+  deleteMatch(id) {
+    return apiClient.delete(`/matches/${id}/delete/`);
+  },
+  joinMatch(id) {
+    return apiClient.post(`/matches/${id}/join/`);
+  },
+  leaveMatch(id) {
+    return apiClient.post(`/matches/${id}/leave/`);
+  },
+  getParticipants(id) {
+    return apiClient.get(`/matches/${id}/participants/`);
+  },
+  getMatchResult(id) {
+    return apiClient.get(`/matches/${id}/result/`);
+  },
+  createMatchResult(id, resultData) {
+    return apiClient.post(`/matches/${id}/result/create/`, resultData);
   },
 };
 
 // 구장 관련 API
 export const venueAPI = {
-  // 구장 목록 조회
-  getVenues: (params) => {
+  getVenues(params) {
     return apiClient.get('/venues/', { params });
   },
-  
-  // 구장 상세 조회
-  getVenue: (id) => {
+  getVenue(id) {
     return apiClient.get(`/venues/${id}/`);
   },
-  
-  // 구장 검색
-  searchVenues: (query) => {
-    return apiClient.get('/venues/search/', { params: { query } });
+  createVenueReview(id, reviewData) {
+    return apiClient.post(`/venues/${id}/reviews/`, reviewData);
   },
 };
 
 // 팀 관련 API
 export const teamAPI = {
-  // 팀 목록 조회
-  getTeams: (params) => {
+  getTeams(params) {
     return apiClient.get('/teams/', { params });
   },
-  
-  // 팀 상세 조회
-  getTeam: (id) => {
+  getTeam(id) {
     return apiClient.get(`/teams/${id}/`);
   },
-  
-  // 팀 생성
-  createTeam: (teamData) => {
+  createTeam(teamData) {
     return apiClient.post('/teams/create/', teamData);
   },
-  
-  // 팀 가입 요청
-  requestJoin: (teamId, message) => {
-    return apiClient.post(`/teams/${teamId}/join-requests/create/`, { message });
+  updateTeam(id, teamData) {
+    return apiClient.put(`/teams/${id}/update/`, teamData);
+  },
+  deleteTeam(id) {
+    return apiClient.delete(`/teams/${id}/delete/`);
+  },
+  joinTeam(id, requestData) {
+    return apiClient.post(`/teams/${id}/join/`, requestData);
+  },
+  leaveTeam(id) {
+    return apiClient.post(`/teams/${id}/leave/`);
+  },
+  getMembers(id) {
+    return apiClient.get(`/teams/${id}/members/`);
+  },
+  getJoinRequests(id) {
+    return apiClient.get(`/teams/${id}/requests/`);
+  },
+  approveJoinRequest(teamId, requestId) {
+    return apiClient.post(`/teams/${teamId}/requests/${requestId}/approve/`);
+  },
+  rejectJoinRequest(teamId, requestId) {
+    return apiClient.post(`/teams/${teamId}/requests/${requestId}/reject/`);
   },
 };
 
