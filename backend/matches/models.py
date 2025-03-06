@@ -40,7 +40,7 @@ class Match(models.Model):
         ('ADV', '고급'),
         ('ALL', '모든 수준')
     ], default='ALL')
-    gender = models.CharField(_('성별'), max_length=5, choices=GENDER_CHOICES, default='MIXED')
+    gender = models.CharField(_('성별'), max_length=6, choices=GENDER_CHOICES, default='MIXED')
     price = models.DecimalField(_('참가비'), max_digits=10, decimal_places=2)
     description = models.TextField(_('설명'), blank=True)
     host = models.ForeignKey('users.User', on_delete=models.CASCADE, related_name='hosted_matches')
