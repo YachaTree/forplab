@@ -243,7 +243,8 @@ export default {
         formData.append('name', this.form.name);
         formData.append('level', this.form.level);
         formData.append('region', this.form.region);
-        formData.append('is_recruiting', this.form.is_recruiting);
+        formData.append('is_recruiting', this.form.is_recruiting ? 'true' : 'false');
+        formData.append('is_private', this.form.is_private ? 'true' : 'false');
         
         if (this.form.description) {
           formData.append('description', this.form.description);
@@ -277,6 +278,11 @@ export default {
         if (error && error.response && error.response.data) {
           const serverErrors = error.response.data;
           console.log('서버 오류 응답:', serverErrors);
+          
+          // 상세 오류 정보 출력
+          console.log('상태 코드:', error.response.status);
+          console.log('상태 텍스트:', error.response.statusText);
+          console.log('오류 데이터:', JSON.stringify(error.response.data));
           
           // 필드별 에러 메시지 설정
           for (const field in serverErrors) {
