@@ -250,13 +250,15 @@ export default {
   
   computed: {
     ...mapState({
-      team: state => state.currentTeam,
-      loading: state => state.teamLoading,
-      error: state => state.teamError,
-      user: state => state.user
+      team: state => state.teams.currentTeam,
+      loading: state => state.teams.teamLoading,
+      error: state => state.teams.teamError,
+      user: state => state.auth.user
     }),
     
-    ...mapGetters(['isAuthenticated']),
+    ...mapGetters({
+      isAuthenticated: 'auth/isAuthenticated'
+    }),
     
     isTeamMember() {
       if (!this.isAuthenticated || !this.team || !this.team.members || !this.user) {
@@ -267,12 +269,41 @@ export default {
     },
     
     isTeamLeader() {
-      if (!this.isAuthenticated || !this.team || !this.team.members || !this.user) {
+      if (!this.isAuthenticated || !this.team || !this.user) {
         return false;
       }
       
-      const currentUser = this.team.members.find(member => member.id === this.user.id);
-      return currentUser && currentUser.is_leader;
+      console.log('팀 소유자 ID:', this.team.owner ? this.team.owner.id : 'undefined');
+      console.log('현재 사용자 ID:', this.user.id);
+      
+      // 팀 소유자(owner) 확인
+      if (this.team.owner && this.team.owner.id === this.user.id) {
+        console.log('소유자 확인 성공!');
+        return true;
+      }
+      
+      // 팀 소유자 ID가 문자열인 경우 (API 응답 형식에 따라 다를 수 있음)
+      if (this.team.owner && String(this.team.owner.id) === String(this.user.id)) {
+        console.log('소유자 확인 성공! (문자열 비교)');
+        return true;
+      }
+      
+      // 팀 소유자 필드가 다른 형식인 경우 (is_owner 필드가 있는 경우)
+      if (this.team.is_owner === true) {
+        console.log('is_owner 필드로 확인 성공!');
+        return true;
+      }
+      
+      // 기존 방식으로도 확인 (팀원 중 리더인지)
+      if (this.team.members) {
+        const currentUser = this.team.members.find(member => member.user && member.user.id === this.user.id);
+        if (currentUser && currentUser.role === 'CAPTAIN') {
+          console.log('팀원 중 주장으로 확인 성공!');
+          return true;
+        }
+      }
+      
+      return false;
     },
     
     hasJoinRequest() {
@@ -286,14 +317,39 @@ export default {
   
   created() {
     this.fetchTeam();
+    if (this.isAuthenticated) {
+      this.fetchUserProfile();
+    }
+  },
+  
+  watch: {
+    team(newTeam) {
+      if (newTeam) {
+        console.log('팀 데이터:', newTeam);
+        console.log('현재 사용자:', this.user);
+        console.log('팀 소유자:', newTeam.owner);
+        console.log('isTeamLeader:', this.isTeamLeader);
+      }
+    },
+    
+    isAuthenticated(newValue) {
+      if (newValue && !this.user) {
+        this.fetchUserProfile();
+      }
+    }
   },
   
   methods: {
-    ...mapActions(['fetchTeam']),
+    ...mapActions({
+      fetchTeamAction: 'teams/fetchTeam',
+      fetchUserProfile: 'auth/fetchProfile'
+    }),
     
     async fetchTeam() {
       try {
-        await this.$store.dispatch('fetchTeam', this.$route.params.id);
+        console.log('팀 ID:', this.$route.params.id);
+        console.log('인증 토큰:', localStorage.getItem('token'));
+        await this.fetchTeamAction(this.$route.params.id);
       } catch (error) {
         console.error('팀 상세 조회 실패:', error);
       }
@@ -305,7 +361,7 @@ export default {
       this.joinRequestSubmitting = true;
       
       try {
-        await this.$store.dispatch('joinTeam', {
+        await this.$store.dispatch('teams/joinTeam', {
           id: this.$route.params.id,
           requestData: this.joinRequestForm
         });
@@ -319,10 +375,10 @@ export default {
           position: ''
         };
         
-        this.$toast.success('가입 신청이 성공적으로 등록되었습니다.');
+        alert('가입 신청이 성공적으로 등록되었습니다.');
       } catch (error) {
         console.error('팀 가입 신청 실패:', error);
-        this.$toast.error('가입 신청에 실패했습니다. 다시 시도해주세요.');
+        alert('가입 신청에 실패했습니다. 다시 시도해주세요.');
       } finally {
         this.joinRequestSubmitting = false;
       }
@@ -339,12 +395,12 @@ export default {
     async confirmCancelRequest() {
       if (confirm('가입 신청을 취소하시겠습니까?')) {
         try {
-          await this.$store.dispatch('cancelJoinRequest', this.$route.params.id);
+          await this.$store.dispatch('teams/cancelJoinRequest', this.$route.params.id);
           await this.fetchTeam();
-          this.$toast.success('가입 신청이 취소되었습니다.');
+          alert('가입 신청이 취소되었습니다.');
         } catch (error) {
           console.error('가입 신청 취소 실패:', error);
-          this.$toast.error('가입 신청 취소에 실패했습니다. 다시 시도해주세요.');
+          alert('가입 신청 취소에 실패했습니다. 다시 시도해주세요.');
         }
       }
     },
@@ -352,41 +408,41 @@ export default {
     async confirmLeaveTeam() {
       if (confirm('정말 팀을 탈퇴하시겠습니까?')) {
         try {
-          await this.$store.dispatch('leaveTeam', this.$route.params.id);
+          await this.$store.dispatch('teams/leaveTeam', this.$route.params.id);
           await this.fetchTeam();
-          this.$toast.success('팀에서 탈퇴했습니다.');
+          alert('팀에서 탈퇴했습니다.');
         } catch (error) {
           console.error('팀 탈퇴 실패:', error);
-          this.$toast.error('팀 탈퇴에 실패했습니다. 다시 시도해주세요.');
+          alert('팀 탈퇴에 실패했습니다. 다시 시도해주세요.');
         }
       }
     },
     
     async approveJoinRequest(requestId) {
       try {
-        await this.$store.dispatch('approveJoinRequest', {
+        await this.$store.dispatch('teams/acceptJoinRequest', {
           teamId: this.$route.params.id,
           requestId
         });
         await this.fetchTeam();
-        this.$toast.success('가입 신청을 승인했습니다.');
+        alert('가입 신청을 승인했습니다.');
       } catch (error) {
         console.error('가입 신청 승인 실패:', error);
-        this.$toast.error('가입 신청 승인에 실패했습니다. 다시 시도해주세요.');
+        alert('가입 신청 승인에 실패했습니다. 다시 시도해주세요.');
       }
     },
     
     async rejectJoinRequest(requestId) {
       try {
-        await this.$store.dispatch('rejectJoinRequest', {
+        await this.$store.dispatch('teams/rejectJoinRequest', {
           teamId: this.$route.params.id,
           requestId
         });
         await this.fetchTeam();
-        this.$toast.success('가입 신청을 거절했습니다.');
+        alert('가입 신청을 거절했습니다.');
       } catch (error) {
         console.error('가입 신청 거절 실패:', error);
-        this.$toast.error('가입 신청 거절에 실패했습니다. 다시 시도해주세요.');
+        alert('가입 신청 거절에 실패했습니다. 다시 시도해주세요.');
       }
     },
     

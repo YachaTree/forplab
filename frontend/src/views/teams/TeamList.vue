@@ -121,7 +121,6 @@
 
 <script>
 import { mapState, mapGetters, mapActions } from 'vuex';
-import _ from 'lodash';
 
 export default {
   name: 'TeamList',
@@ -132,32 +131,35 @@ export default {
         region: '',
         level: '',
         is_recruiting: '',
-        search: '',
-        page: 1
+        search: ''
       },
       page: 1,
       pageSize: 10,
-      totalPages: 1
+      totalPages: 1,
+      searchTimeout: null
     };
   },
   
   computed: {
     ...mapState({
-      teams: state => state.teams,
-      loading: state => state.teamsLoading,
-      error: state => state.teamsError
+      teams: state => state.teams.teams,
+      loading: state => state.teams.teamsLoading,
+      error: state => state.teams.teamsError
     }),
     
-    ...mapGetters(['isAuthenticated'])
+    ...mapGetters({
+      isAuthenticated: 'auth/isAuthenticated'
+    })
   },
   
   created() {
     this.fetchTeams();
-    this.debounceSearch = _.debounce(this.applyFilters, 500);
   },
   
   methods: {
-    ...mapActions(['fetchTeams']),
+    ...mapActions({
+      fetchTeamsAction: 'teams/fetchTeams'
+    }),
     
     async fetchTeams() {
       try {
@@ -167,7 +169,7 @@ export default {
           page_size: this.pageSize
         };
         
-        const response = await this.$store.dispatch('fetchTeams', params);
+        const response = await this.fetchTeamsAction(params);
         
         // 페이지네이션 정보 업데이트 (백엔드에서 제공하는 경우)
         if (response && response.data && response.data.count) {
@@ -179,7 +181,7 @@ export default {
     },
     
     applyFilters() {
-      this.page = 1; // 필터 적용 시 첫 페이지로 이동
+      this.page = 1; // 필터 변경 시 첫 페이지로 이동
       this.fetchTeams();
     },
     
@@ -188,10 +190,21 @@ export default {
         region: '',
         level: '',
         is_recruiting: '',
-        search: '',
-        page: 1
+        search: ''
       };
       this.page = 1;
+      this.fetchTeams();
+    },
+    
+    debounceSearch() {
+      clearTimeout(this.searchTimeout);
+      this.searchTimeout = setTimeout(() => {
+        this.applyFilters();
+      }, 500);
+    },
+    
+    changePage(newPage) {
+      this.page = newPage;
       this.fetchTeams();
     },
     
