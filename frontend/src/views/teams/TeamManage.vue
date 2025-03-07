@@ -68,8 +68,10 @@
                 type="file" 
                 @change="handleLogoChange" 
                 accept="image/*"
+                ref="logoInput"
+                style="display: none;"
               />
-              <button type="button" class="change-logo-btn">로고 변경</button>
+              <button type="button" class="change-logo-btn" @click="$refs.logoInput.click()">로고 변경</button>
             </div>
           </div>
           
@@ -115,6 +117,9 @@
           <div class="form-actions">
             <button type="submit" class="save-btn" :disabled="updating">
               {{ updating ? '저장 중...' : '변경사항 저장' }}
+            </button>
+            <button type="button" class="delete-team-btn" @click="confirmDeleteTeam">
+              팀 삭제
             </button>
           </div>
         </form>
@@ -258,7 +263,8 @@ export default {
       updateMemberRoleAction: 'teams/updateMemberRole',
       removeMemberAction: 'teams/removeMember',
       acceptJoinRequestAction: 'teams/acceptJoinRequest',
-      rejectJoinRequestAction: 'teams/rejectJoinRequest'
+      rejectJoinRequestAction: 'teams/rejectJoinRequest',
+      deleteTeamAction: 'teams/deleteTeam'
     }),
     
     async fetchTeam() {
@@ -421,6 +427,25 @@ export default {
         'MEMBER': '일반 멤버'
       }
       return roleMap[role] || '일반 멤버'
+    },
+    
+    confirmDeleteTeam() {
+      if (confirm('정말로 팀을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
+        this.deleteTeam()
+      }
+    },
+    
+    async deleteTeam() {
+      try {
+        await this.deleteTeamAction(this.team.id)
+        alert('팀이 성공적으로 삭제되었습니다.')
+        // 팀 목록 페이지로 이동하기 전에 팀 목록을 다시 불러옵니다
+        await this.$store.dispatch('teams/fetchTeams')
+        this.$router.push({ name: 'TeamList' })
+      } catch (error) {
+        console.error('팀 삭제 실패:', error)
+        alert('팀 삭제에 실패했습니다. 다시 시도해주세요.')
+      }
     },
     
     formatDate
@@ -591,6 +616,16 @@ export default {
 .save-btn:disabled {
   background-color: #a0c4f0;
   cursor: not-allowed;
+}
+
+.delete-team-btn {
+  padding: 10px 20px;
+  background-color: #e74c3c;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-left: 10px;
 }
 
 /* 팀원 관리 */
