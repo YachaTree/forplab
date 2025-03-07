@@ -10,11 +10,14 @@ const MatchDetail = () => import('@/views/matches/MatchDetail.vue');
 const MatchCreate = () => import('@/views/matches/MatchCreate.vue');
 import VenueList from '../views/venues/VenueList.vue'
 import VenueDetail from '../views/venues/VenueDetail.vue'
+import TeamList from '../views/teams/TeamList.vue'
+import TeamDetail from '../views/teams/TeamDetail.vue'
+import TeamCreate from '../views/teams/TeamCreate.vue'
+import TeamManage from '../views/teams/TeamManage.vue'
 
 // 임시 컴포넌트 (나중에 구현 예정)
 const NotFound = { template: '<div>페이지를 찾을 수 없습니다.</div>' };
 const Profile = { template: '<div>프로필 페이지 (개발 중)</div>' };
-const TeamList = { template: '<div>팀 목록 페이지 (개발 중)</div>' };
 
 const routes = [
   {
@@ -71,7 +74,26 @@ const routes = [
   {
     path: '/teams',
     name: 'TeamList',
-    component: TeamList,
+    component: TeamList
+  },
+  {
+    path: '/teams/:id',
+    name: 'TeamDetail',
+    component: TeamDetail,
+    props: true
+  },
+  {
+    path: '/teams/create',
+    name: 'TeamCreate',
+    component: TeamCreate,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/teams/:id/manage',
+    name: 'TeamManage',
+    component: TeamManage,
+    props: true,
+    meta: { requiresAuth: true }
   },
   {
     path: '/:pathMatch(.*)*',

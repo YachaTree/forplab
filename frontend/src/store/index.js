@@ -20,7 +20,10 @@ export default createStore({
     venueError: null,
     teams: [],
     teamsLoading: false,
-    teamsError: null
+    teamsError: null,
+    currentTeam: null,
+    teamLoading: false,
+    teamError: null
   },
   getters: {
     isAuthenticated: state => state.isAuthenticated,
@@ -39,7 +42,10 @@ export default createStore({
     venueError: state => state.venueError,
     teams: state => state.teams,
     teamsLoading: state => state.teamsLoading,
-    teamsError: state => state.teamsError
+    teamsError: state => state.teamsError,
+    currentTeam: state => state.currentTeam,
+    teamLoading: state => state.teamLoading,
+    teamError: state => state.teamError
   },
   mutations: {
     SET_TOKEN(state, token) {
@@ -98,6 +104,15 @@ export default createStore({
     },
     SET_TEAMS_ERROR(state, error) {
       state.teamsError = error
+    },
+    SET_CURRENT_TEAM(state, team) {
+      state.currentTeam = team
+    },
+    SET_TEAM_LOADING(state, isLoading) {
+      state.teamLoading = isLoading
+    },
+    SET_TEAM_ERROR(state, error) {
+      state.teamError = error
     }
   },
   actions: {
@@ -289,7 +304,7 @@ export default createStore({
       commit('SET_TEAMS_ERROR', null)
       try {
         const response = await teamAPI.getTeams(params)
-        commit('SET_TEAMS', response.data)
+        commit('SET_TEAMS', response.data.results || response.data)
         return response
       } catch (error) {
         console.error('팀 목록 조회 실패:', error)
@@ -298,7 +313,156 @@ export default createStore({
       } finally {
         commit('SET_TEAMS_LOADING', false)
       }
-    }
+    },
+    
+    async fetchTeam({ commit }, id) {
+      commit('SET_TEAM_LOADING', true)
+      commit('SET_TEAM_ERROR', null)
+      try {
+        const response = await teamAPI.getTeam(id)
+        commit('SET_CURRENT_TEAM', response.data)
+        return response
+      } catch (error) {
+        console.error('팀 상세 조회 실패:', error)
+        commit('SET_TEAM_ERROR', error.message || '팀 정보를 불러오는데 실패했습니다.')
+        throw error
+      } finally {
+        commit('SET_TEAM_LOADING', false)
+      }
+    },
+    
+    async createTeam(_, teamData) {
+      try {
+        const response = await teamAPI.createTeam(teamData)
+        return response
+      } catch (error) {
+        console.error('팀 생성 실패:', error)
+        throw error
+      }
+    },
+    
+    async updateTeam({ dispatch }, { teamId, teamData }) {
+      try {
+        const response = await teamAPI.updateTeam(teamId, teamData)
+        // 팀 정보 업데이트 후 다시 조회
+        await dispatch('fetchTeam', teamId)
+        return response
+      } catch (error) {
+        console.error('팀 정보 업데이트 실패:', error)
+        throw error
+      }
+    },
+    
+    async updateMemberRole({ dispatch }, { teamId, memberId, role }) {
+      try {
+        const response = await teamAPI.updateMemberRole(teamId, memberId, { role })
+        // 팀 정보 업데이트 후 다시 조회
+        await dispatch('fetchTeam', teamId)
+        return response
+      } catch (error) {
+        console.error('팀원 역할 변경 실패:', error)
+        throw error
+      }
+    },
+    
+    async removeMember({ dispatch }, { teamId, memberId }) {
+      try {
+        const response = await teamAPI.removeMember(teamId, memberId)
+        // 팀 정보 업데이트 후 다시 조회
+        await dispatch('fetchTeam', teamId)
+        return response
+      } catch (error) {
+        console.error('팀원 제외 실패:', error)
+        throw error
+      }
+    },
+    
+    async acceptJoinRequest({ dispatch }, { teamId, requestId }) {
+      try {
+        const response = await teamAPI.acceptJoinRequest(teamId, requestId)
+        // 팀 정보 업데이트 후 다시 조회
+        await dispatch('fetchTeam', teamId)
+        return response
+      } catch (error) {
+        console.error('가입 신청 수락 실패:', error)
+        throw error
+      }
+    },
+    
+    async rejectJoinRequest({ dispatch }, { teamId, requestId }) {
+      try {
+        const response = await teamAPI.rejectJoinRequest(teamId, requestId)
+        // 팀 정보 업데이트 후 다시 조회
+        await dispatch('fetchTeam', teamId)
+        return response
+      } catch (error) {
+        console.error('가입 신청 거절 실패:', error)
+        throw error
+      }
+    },
+    
+    async deleteTeam({ dispatch }, id) {
+      try {
+        const response = await teamAPI.deleteTeam(id)
+        // 팀 삭제 후 팀 목록 페이지로 이동하기 위해 목록 다시 조회
+        dispatch('fetchTeams')
+        return response
+      } catch (error) {
+        console.error('팀 삭제 실패:', error)
+        throw error
+      }
+    },
+    
+    async joinTeam(_, { id, requestData }) {
+      try {
+        const response = await teamAPI.joinTeam(id, requestData)
+        return response
+      } catch (error) {
+        console.error('팀 가입 신청 실패:', error)
+        throw error
+      }
+    },
+    
+    async leaveTeam(_, id) {
+      try {
+        const response = await teamAPI.leaveTeam(id)
+        return response
+      } catch (error) {
+        console.error('팀 탈퇴 실패:', error)
+        throw error
+      }
+    },
+    
+    async cancelJoinRequest(_, id) {
+      try {
+        // 가입 신청 취소는 팀 탈퇴와 동일한 API 사용
+        const response = await teamAPI.leaveTeam(id)
+        return response
+      } catch (error) {
+        console.error('가입 신청 취소 실패:', error)
+        throw error
+      }
+    },
+    
+    async getTeamMembers(_, id) {
+      try {
+        const response = await teamAPI.getMembers(id)
+        return response
+      } catch (error) {
+        console.error('팀원 목록 조회 실패:', error)
+        throw error
+      }
+    },
+    
+    async getJoinRequests(_, id) {
+      try {
+        const response = await teamAPI.getJoinRequests(id)
+        return response
+      } catch (error) {
+        console.error('가입 신청 목록 조회 실패:', error)
+        throw error
+      }
+    },
   },
   modules: {
   }

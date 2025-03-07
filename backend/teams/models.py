@@ -12,10 +12,19 @@ class Team(models.Model):
         ('PRO', '프로'),
     ]
     
+    REGION_CHOICES = [
+        ('seoul', '서울'),
+        ('gyeonggi', '경기'),
+        ('incheon', '인천'),
+        ('other', '기타'),
+    ]
+    
     name = models.CharField(_('팀명'), max_length=100)
     logo = models.ImageField(_('로고'), upload_to='team_logos/', null=True, blank=True)
     description = models.TextField(_('팀 소개'), blank=True)
     level = models.CharField(_('팀 수준'), max_length=3, choices=LEVEL_CHOICES, default='BEG')
+    region = models.CharField(_('활동 지역'), max_length=20, choices=REGION_CHOICES, default='seoul')
+    is_recruiting = models.BooleanField(_('모집 중'), default=True)
     rating = models.FloatField(_('팀 레이팅'), default=1000.0)
     owner = models.ForeignKey('users.User', on_delete=models.CASCADE, related_name='owned_teams')
     members = models.ManyToManyField('users.User', through='TeamMember', related_name='teams')
