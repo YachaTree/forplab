@@ -254,7 +254,7 @@ export default {
         }
         
         // 팀 생성 API 호출
-        const response = await this.$store.dispatch('createTeam', formData);
+        const response = await this.$store.dispatch('teams/createTeam', formData);
         
         // 성공 메시지 표시
         alert('팀이 성공적으로 생성되었습니다.');
