@@ -132,7 +132,7 @@ export default {
     // 사용자 정보 가져오기
     onMounted(() => {
       if (isAuthenticated.value && !user.value) {
-        store.dispatch('fetchUserProfile');
+        store.dispatch('auth/fetchUserProfile');
       }
       
       // 클릭 이벤트 리스너 등록
