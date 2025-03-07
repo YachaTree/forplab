@@ -71,11 +71,8 @@
     
     <div v-if="!loading && !error && teams.length > 0" class="teams-grid">
       <div v-for="team in teams" :key="team.id" class="team-card" @click="goToTeamDetail(team.id)">
-        <div class="team-image">
-          <img :src="team.logo || '/img/default-team.jpg'" alt="Team" />
-          <div class="team-level" :class="'level-' + team.level">
-            {{ getLevelText(team.level) }}
-          </div>
+        <div class="team-logo">
+          <img :src="team.logo || '/img/default-team.jpg'" alt="Team Logo" />
         </div>
         
         <div class="team-content">
@@ -83,7 +80,7 @@
           
           <div class="team-region">
             <i class="fas fa-map-marker-alt"></i>
-            <span>{{ team.region }}</span>
+            <span>{{ getRegionText(team.region) }}</span>
           </div>
           
           <div class="team-info">
@@ -121,7 +118,6 @@
 
 <script>
 import { mapState, mapGetters, mapActions } from 'vuex';
-import _ from 'lodash';
 
 export default {
   name: 'TeamList',
@@ -132,32 +128,35 @@ export default {
         region: '',
         level: '',
         is_recruiting: '',
-        search: '',
-        page: 1
+        search: ''
       },
       page: 1,
       pageSize: 10,
-      totalPages: 1
+      totalPages: 1,
+      searchTimeout: null
     };
   },
   
   computed: {
     ...mapState({
-      teams: state => state.teams,
-      loading: state => state.teamsLoading,
-      error: state => state.teamsError
+      teams: state => state.teams.teams,
+      loading: state => state.teams.teamsLoading,
+      error: state => state.teams.teamsError
     }),
     
-    ...mapGetters(['isAuthenticated'])
+    ...mapGetters({
+      isAuthenticated: 'auth/isAuthenticated'
+    })
   },
   
   created() {
     this.fetchTeams();
-    this.debounceSearch = _.debounce(this.applyFilters, 500);
   },
   
   methods: {
-    ...mapActions(['fetchTeams']),
+    ...mapActions({
+      fetchTeamsAction: 'teams/fetchTeams'
+    }),
     
     async fetchTeams() {
       try {
@@ -167,7 +166,7 @@ export default {
           page_size: this.pageSize
         };
         
-        const response = await this.$store.dispatch('fetchTeams', params);
+        const response = await this.fetchTeamsAction(params);
         
         // 페이지네이션 정보 업데이트 (백엔드에서 제공하는 경우)
         if (response && response.data && response.data.count) {
@@ -179,7 +178,7 @@ export default {
     },
     
     applyFilters() {
-      this.page = 1; // 필터 적용 시 첫 페이지로 이동
+      this.page = 1; // 필터 변경 시 첫 페이지로 이동
       this.fetchTeams();
     },
     
@@ -188,10 +187,21 @@ export default {
         region: '',
         level: '',
         is_recruiting: '',
-        search: '',
-        page: 1
+        search: ''
       };
       this.page = 1;
+      this.fetchTeams();
+    },
+    
+    debounceSearch() {
+      clearTimeout(this.searchTimeout);
+      this.searchTimeout = setTimeout(() => {
+        this.applyFilters();
+      }, 500);
+    },
+    
+    changePage(newPage) {
+      this.page = newPage;
       this.fetchTeams();
     },
     
@@ -225,6 +235,17 @@ export default {
       };
       
       return levelMap[level] || level;
+    },
+    
+    getRegionText(region) {
+      const regionMap = {
+        'seoul': '서울',
+        'gyeonggi': '경기',
+        'incheon': '인천',
+        'other': '기타'
+      };
+      
+      return regionMap[region] || region;
     }
   }
 };
@@ -340,13 +361,13 @@ export default {
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
 }
 
-.team-image {
+.team-logo {
   position: relative;
   height: 180px;
   overflow: hidden;
 }
 
-.team-image img {
+.team-logo img {
   width: 100%;
   height: 100%;
   object-fit: cover;

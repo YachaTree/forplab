@@ -1,51 +1,21 @@
 import { createStore } from 'vuex'
 import { authAPI, matchAPI, venueAPI, teamAPI } from '@/services/api'
 
-export default createStore({
+// Auth 모듈
+const auth = {
+  namespaced: true,
   state: {
     user: null,
     token: localStorage.getItem('token') || null,
     isAuthenticated: !!localStorage.getItem('token'),
-    matches: [],
-    matchesLoading: false,
-    matchesError: null,
-    currentMatch: null,
-    matchLoading: false,
-    matchError: null,
-    venues: [],
-    venuesLoading: false,
-    venuesError: null,
-    currentVenue: null,
-    venueLoading: false,
-    venueError: null,
-    teams: [],
-    teamsLoading: false,
-    teamsError: null,
-    currentTeam: null,
-    teamLoading: false,
-    teamError: null
+    loading: false,
+    error: null
   },
   getters: {
     isAuthenticated: state => state.isAuthenticated,
     user: state => state.user,
-    matches: state => state.matches,
-    matchesLoading: state => state.matchesLoading,
-    matchesError: state => state.matchesError,
-    currentMatch: state => state.currentMatch,
-    matchLoading: state => state.matchLoading,
-    matchError: state => state.matchError,
-    venues: state => state.venues,
-    venuesLoading: state => state.venuesLoading,
-    venuesError: state => state.venuesError,
-    currentVenue: state => state.currentVenue,
-    venueLoading: state => state.venueLoading,
-    venueError: state => state.venueError,
-    teams: state => state.teams,
-    teamsLoading: state => state.teamsLoading,
-    teamsError: state => state.teamsError,
-    currentTeam: state => state.currentTeam,
-    teamLoading: state => state.teamLoading,
-    teamError: state => state.teamError
+    loading: state => state.loading,
+    error: state => state.error
   },
   mutations: {
     SET_TOKEN(state, token) {
@@ -60,75 +30,33 @@ export default createStore({
     SET_USER(state, user) {
       state.user = user
     },
-    SET_MATCHES(state, matches) {
-      state.matches = matches
+    SET_LOADING(state, loading) {
+      state.loading = loading
     },
-    SET_MATCHES_LOADING(state, isLoading) {
-      state.matchesLoading = isLoading
-    },
-    SET_MATCHES_ERROR(state, error) {
-      state.matchesError = error
-    },
-    SET_CURRENT_MATCH(state, match) {
-      state.currentMatch = match
-    },
-    SET_MATCH_LOADING(state, isLoading) {
-      state.matchLoading = isLoading
-    },
-    SET_MATCH_ERROR(state, error) {
-      state.matchError = error
-    },
-    SET_VENUES(state, venues) {
-      state.venues = venues
-    },
-    SET_VENUES_LOADING(state, isLoading) {
-      state.venuesLoading = isLoading
-    },
-    SET_VENUES_ERROR(state, error) {
-      state.venuesError = error
-    },
-    SET_CURRENT_VENUE(state, venue) {
-      state.currentVenue = venue
-    },
-    SET_VENUE_LOADING(state, isLoading) {
-      state.venueLoading = isLoading
-    },
-    SET_VENUE_ERROR(state, error) {
-      state.venueError = error
-    },
-    SET_TEAMS(state, teams) {
-      state.teams = teams
-    },
-    SET_TEAMS_LOADING(state, isLoading) {
-      state.teamsLoading = isLoading
-    },
-    SET_TEAMS_ERROR(state, error) {
-      state.teamsError = error
-    },
-    SET_CURRENT_TEAM(state, team) {
-      state.currentTeam = team
-    },
-    SET_TEAM_LOADING(state, isLoading) {
-      state.teamLoading = isLoading
-    },
-    SET_TEAM_ERROR(state, error) {
-      state.teamError = error
+    SET_ERROR(state, error) {
+      state.error = error
     }
   },
   actions: {
     // 인증 관련 액션
     async login({ commit, dispatch }, credentials) {
+      commit('SET_LOADING', true)
+      commit('SET_ERROR', null)
       try {
         const response = await authAPI.login(credentials)
         const token = response.data.access
         commit('SET_TOKEN', token)
-        dispatch('fetchUserProfile')
+        await dispatch('fetchProfile')
+        commit('SET_LOADING', false)
         return response
       } catch (error) {
         console.error('로그인 실패:', error)
+        commit('SET_ERROR', error.message || '로그인에 실패했습니다.')
+        commit('SET_LOADING', false)
         throw error
       }
     },
+    
     async register(_, userData) {
       try {
         const response = await authAPI.register(userData)
@@ -138,6 +66,7 @@ export default createStore({
         throw error
       }
     },
+    
     async logout({ commit }) {
       try {
         await authAPI.logout()
@@ -145,12 +74,14 @@ export default createStore({
         commit('SET_USER', null)
       } catch (error) {
         console.error('로그아웃 실패:', error)
-        // 로그아웃은 실패해도 클라이언트에서 토큰 제거
+        // 로그아웃 실패해도 토큰과 유저 정보는 삭제
         commit('SET_TOKEN', null)
         commit('SET_USER', null)
+        throw error
       }
     },
-    async fetchUserProfile({ commit }) {
+    
+    async fetchProfile({ commit }) {
       try {
         const response = await authAPI.getProfile()
         commit('SET_USER', response.data)
@@ -160,6 +91,12 @@ export default createStore({
         throw error
       }
     },
+    
+    // App.vue에서 사용하는 fetchUserProfile 액션 추가
+    fetchUserProfile({ dispatch }) {
+      return dispatch('fetchProfile')
+    },
+    
     async updateProfile({ commit }, profileData) {
       try {
         const response = await authAPI.updateProfile(profileData)
@@ -169,135 +106,50 @@ export default createStore({
         console.error('프로필 업데이트 실패:', error)
         throw error
       }
-    },
+    }
+  }
+}
 
-    // 매치 관련 액션
-    async fetchMatches({ commit }, params) {
-      commit('SET_MATCHES_LOADING', true)
-      commit('SET_MATCHES_ERROR', null)
-      try {
-        const response = await matchAPI.getMatches(params)
-        commit('SET_MATCHES', response.data)
-        return response
-      } catch (error) {
-        console.error('매치 목록 조회 실패:', error)
-        commit('SET_MATCHES_ERROR', error.message || '매치 목록을 불러오는데 실패했습니다.')
-        throw error
-      } finally {
-        commit('SET_MATCHES_LOADING', false)
-      }
+// Teams 모듈
+const teams = {
+  namespaced: true,
+  state: {
+    teams: [],
+    teamsLoading: false,
+    teamsError: null,
+    currentTeam: null,
+    teamLoading: false,
+    teamError: null
+  },
+  getters: {
+    teams: state => state.teams,
+    teamsLoading: state => state.teamsLoading,
+    teamsError: state => state.teamsError,
+    currentTeam: state => state.currentTeam,
+    teamLoading: state => state.teamLoading,
+    teamError: state => state.teamError
+  },
+  mutations: {
+    SET_TEAMS(state, teams) {
+      state.teams = teams
     },
-    async fetchMatch({ commit }, id) {
-      commit('SET_MATCH_LOADING', true)
-      commit('SET_MATCH_ERROR', null)
-      try {
-        const response = await matchAPI.getMatch(id)
-        commit('SET_CURRENT_MATCH', response.data)
-        return response
-      } catch (error) {
-        console.error('매치 상세 조회 실패:', error)
-        commit('SET_MATCH_ERROR', error.message || '매치 정보를 불러오는데 실패했습니다.')
-        throw error
-      } finally {
-        commit('SET_MATCH_LOADING', false)
-      }
+    SET_TEAMS_LOADING(state, loading) {
+      state.teamsLoading = loading
     },
-    async createMatch({ dispatch }, matchData) {
-      try {
-        const response = await matchAPI.createMatch(matchData)
-        dispatch('fetchMatches')
-        return response
-      } catch (error) {
-        console.error('매치 생성 실패:', error)
-        throw error
-      }
+    SET_TEAMS_ERROR(state, error) {
+      state.teamsError = error
     },
-    async updateMatch({ dispatch }, { id, matchData }) {
-      try {
-        const response = await matchAPI.updateMatch(id, matchData)
-        dispatch('fetchMatch', id)
-        return response
-      } catch (error) {
-        console.error('매치 업데이트 실패:', error)
-        throw error
-      }
+    SET_CURRENT_TEAM(state, team) {
+      state.currentTeam = team
     },
-    async deleteMatch({ dispatch }, id) {
-      try {
-        const response = await matchAPI.deleteMatch(id)
-        dispatch('fetchMatches')
-        return response
-      } catch (error) {
-        console.error('매치 삭제 실패:', error)
-        throw error
-      }
+    SET_TEAM_LOADING(state, loading) {
+      state.teamLoading = loading
     },
-    async joinMatch({ dispatch }, id) {
-      try {
-        const response = await matchAPI.joinMatch(id)
-        dispatch('fetchMatch', id)
-        return response
-      } catch (error) {
-        console.error('매치 참가 실패:', error)
-        throw error
-      }
-    },
-    async leaveMatch({ dispatch }, id) {
-      try {
-        const response = await matchAPI.leaveMatch(id)
-        dispatch('fetchMatch', id)
-        return response
-      } catch (error) {
-        console.error('매치 참가 취소 실패:', error)
-        throw error
-      }
-    },
-
-    // 구장 관련 액션
-    async fetchVenues({ commit }, params) {
-      commit('SET_VENUES_LOADING', true)
-      commit('SET_VENUES_ERROR', null)
-      try {
-        const response = await venueAPI.getVenues(params)
-        commit('SET_VENUES', response.data.results || response.data)
-        return response
-      } catch (error) {
-        console.error('구장 목록 조회 실패:', error)
-        commit('SET_VENUES_ERROR', error.message || '구장 목록을 불러오는데 실패했습니다.')
-        throw error
-      } finally {
-        commit('SET_VENUES_LOADING', false)
-      }
-    },
-    
-    async fetchVenue({ commit }, id) {
-      commit('SET_VENUE_LOADING', true)
-      commit('SET_VENUE_ERROR', null)
-      try {
-        const response = await venueAPI.getVenue(id)
-        commit('SET_CURRENT_VENUE', response.data)
-        return response
-      } catch (error) {
-        console.error('구장 상세 조회 실패:', error)
-        commit('SET_VENUE_ERROR', error.message || '구장 정보를 불러오는데 실패했습니다.')
-        throw error
-      } finally {
-        commit('SET_VENUE_LOADING', false)
-      }
-    },
-    
-    async createVenueReview({ dispatch }, { venueId, reviewData }) {
-      try {
-        const response = await venueAPI.createVenueReview(venueId, reviewData)
-        // 리뷰 등록 후 구장 정보 다시 조회
-        dispatch('fetchVenue', venueId)
-        return response
-      } catch (error) {
-        console.error('구장 리뷰 등록 실패:', error)
-        throw error
-      }
-    },
-
+    SET_TEAM_ERROR(state, error) {
+      state.teamError = error
+    }
+  },
+  actions: {
     // 팀 관련 액션
     async fetchTeams({ commit }, params) {
       commit('SET_TEAMS_LOADING', true)
@@ -348,67 +200,7 @@ export default createStore({
         await dispatch('fetchTeam', teamId)
         return response
       } catch (error) {
-        console.error('팀 정보 업데이트 실패:', error)
-        throw error
-      }
-    },
-    
-    async updateMemberRole({ dispatch }, { teamId, memberId, role }) {
-      try {
-        const response = await teamAPI.updateMemberRole(teamId, memberId, { role })
-        // 팀 정보 업데이트 후 다시 조회
-        await dispatch('fetchTeam', teamId)
-        return response
-      } catch (error) {
-        console.error('팀원 역할 변경 실패:', error)
-        throw error
-      }
-    },
-    
-    async removeMember({ dispatch }, { teamId, memberId }) {
-      try {
-        const response = await teamAPI.removeMember(teamId, memberId)
-        // 팀 정보 업데이트 후 다시 조회
-        await dispatch('fetchTeam', teamId)
-        return response
-      } catch (error) {
-        console.error('팀원 제외 실패:', error)
-        throw error
-      }
-    },
-    
-    async acceptJoinRequest({ dispatch }, { teamId, requestId }) {
-      try {
-        const response = await teamAPI.acceptJoinRequest(teamId, requestId)
-        // 팀 정보 업데이트 후 다시 조회
-        await dispatch('fetchTeam', teamId)
-        return response
-      } catch (error) {
-        console.error('가입 신청 수락 실패:', error)
-        throw error
-      }
-    },
-    
-    async rejectJoinRequest({ dispatch }, { teamId, requestId }) {
-      try {
-        const response = await teamAPI.rejectJoinRequest(teamId, requestId)
-        // 팀 정보 업데이트 후 다시 조회
-        await dispatch('fetchTeam', teamId)
-        return response
-      } catch (error) {
-        console.error('가입 신청 거절 실패:', error)
-        throw error
-      }
-    },
-    
-    async deleteTeam({ dispatch }, id) {
-      try {
-        const response = await teamAPI.deleteTeam(id)
-        // 팀 삭제 후 팀 목록 페이지로 이동하기 위해 목록 다시 조회
-        dispatch('fetchTeams')
-        return response
-      } catch (error) {
-        console.error('팀 삭제 실패:', error)
+        console.error('팀 업데이트 실패:', error)
         throw error
       }
     },
@@ -423,20 +215,9 @@ export default createStore({
       }
     },
     
-    async leaveTeam(_, id) {
+    async cancelJoinRequest(_, teamId) {
       try {
-        const response = await teamAPI.leaveTeam(id)
-        return response
-      } catch (error) {
-        console.error('팀 탈퇴 실패:', error)
-        throw error
-      }
-    },
-    
-    async cancelJoinRequest(_, id) {
-      try {
-        // 가입 신청 취소는 팀 탈퇴와 동일한 API 사용
-        const response = await teamAPI.leaveTeam(id)
+        const response = await teamAPI.cancelJoinRequest(teamId)
         return response
       } catch (error) {
         console.error('가입 신청 취소 실패:', error)
@@ -444,26 +225,238 @@ export default createStore({
       }
     },
     
-    async getTeamMembers(_, id) {
+    async acceptJoinRequest(_, { teamId, requestId }) {
       try {
-        const response = await teamAPI.getMembers(id)
+        const response = await teamAPI.acceptJoinRequest(teamId, requestId)
         return response
       } catch (error) {
-        console.error('팀원 목록 조회 실패:', error)
+        console.error('가입 신청 승인 실패:', error)
         throw error
       }
     },
     
-    async getJoinRequests(_, id) {
+    async rejectJoinRequest(_, { teamId, requestId }) {
       try {
-        const response = await teamAPI.getJoinRequests(id)
+        const response = await teamAPI.rejectJoinRequest(teamId, requestId)
         return response
       } catch (error) {
-        console.error('가입 신청 목록 조회 실패:', error)
+        console.error('가입 신청 거절 실패:', error)
         throw error
       }
     },
-  },
-  modules: {
+    
+    async leaveTeam(_, teamId) {
+      try {
+        const response = await teamAPI.leaveTeam(teamId)
+        return response
+      } catch (error) {
+        console.error('팀 탈퇴 실패:', error)
+        throw error
+      }
+    },
+    
+    async deleteTeam({ commit }, teamId) {
+      try {
+        const response = await teamAPI.deleteTeam(teamId)
+        // 팀 삭제 후 현재 팀 정보 초기화
+        commit('SET_CURRENT_TEAM', null)
+        return response
+      } catch (error) {
+        console.error('팀 삭제 실패:', error)
+        // 오류가 발생해도 현재 팀 정보 초기화
+        commit('SET_CURRENT_TEAM', null)
+        // 오류를 상위로 전파
+        throw error
+      }
+    },
   }
-}) 
+}
+
+// Matches 모듈
+const matches = {
+  namespaced: true,
+  state: {
+    matches: [],
+    matchesLoading: false,
+    matchesError: null,
+    currentMatch: null,
+    matchLoading: false,
+    matchError: null
+  },
+  getters: {
+    matches: state => state.matches,
+    matchesLoading: state => state.matchesLoading,
+    matchesError: state => state.matchesError,
+    currentMatch: state => state.currentMatch,
+    matchLoading: state => state.matchLoading,
+    matchError: state => state.matchError
+  },
+  mutations: {
+    SET_MATCHES(state, matches) {
+      state.matches = matches
+    },
+    SET_MATCHES_LOADING(state, loading) {
+      state.matchesLoading = loading
+    },
+    SET_MATCHES_ERROR(state, error) {
+      state.matchesError = error
+    },
+    SET_CURRENT_MATCH(state, match) {
+      state.currentMatch = match
+    },
+    SET_MATCH_LOADING(state, loading) {
+      state.matchLoading = loading
+    },
+    SET_MATCH_ERROR(state, error) {
+      state.matchError = error
+    }
+  },
+  actions: {
+    // 매치 관련 액션
+    async fetchMatches({ commit }, params) {
+      commit('SET_MATCHES_LOADING', true)
+      commit('SET_MATCHES_ERROR', null)
+      try {
+        const response = await matchAPI.getMatches(params)
+        commit('SET_MATCHES', response.data.results || response.data)
+        return response
+      } catch (error) {
+        console.error('매치 목록 조회 실패:', error)
+        commit('SET_MATCHES_ERROR', error.message || '매치 목록을 불러오는데 실패했습니다.')
+        throw error
+      } finally {
+        commit('SET_MATCHES_LOADING', false)
+      }
+    },
+    
+    async fetchMatch({ commit }, id) {
+      commit('SET_MATCH_LOADING', true)
+      commit('SET_MATCH_ERROR', null)
+      try {
+        const response = await matchAPI.getMatch(id)
+        commit('SET_CURRENT_MATCH', response.data)
+        return response
+      } catch (error) {
+        console.error('매치 상세 조회 실패:', error)
+        commit('SET_MATCH_ERROR', error.message || '매치 정보를 불러오는데 실패했습니다.')
+        throw error
+      } finally {
+        commit('SET_MATCH_LOADING', false)
+      }
+    },
+    
+    async createMatch(_, matchData) {
+      try {
+        const response = await matchAPI.createMatch(matchData)
+        return response
+      } catch (error) {
+        console.error('매치 생성 실패:', error)
+        throw error
+      }
+    },
+    
+    async updateMatch({ dispatch }, { matchId, matchData }) {
+      try {
+        const response = await matchAPI.updateMatch(matchId, matchData)
+        // 매치 정보 업데이트 후 다시 조회
+        await dispatch('fetchMatch', matchId)
+        return response
+      } catch (error) {
+        console.error('매치 업데이트 실패:', error)
+        throw error
+      }
+    }
+  }
+}
+
+// Venues 모듈
+const venues = {
+  namespaced: true,
+  state: {
+    venues: [],
+    venuesLoading: false,
+    venuesError: null,
+    currentVenue: null,
+    venueLoading: false,
+    venueError: null
+  },
+  getters: {
+    venues: state => state.venues,
+    venuesLoading: state => state.venuesLoading,
+    venuesError: state => state.venuesError,
+    currentVenue: state => state.currentVenue,
+    venueLoading: state => state.venueLoading,
+    venueError: state => state.venueError
+  },
+  mutations: {
+    SET_VENUES(state, venues) {
+      state.venues = venues
+    },
+    SET_VENUES_LOADING(state, loading) {
+      state.venuesLoading = loading
+    },
+    SET_VENUES_ERROR(state, error) {
+      state.venuesError = error
+    },
+    SET_CURRENT_VENUE(state, venue) {
+      state.currentVenue = venue
+    },
+    SET_VENUE_LOADING(state, loading) {
+      state.venueLoading = loading
+    },
+    SET_VENUE_ERROR(state, error) {
+      state.venueError = error
+    }
+  },
+  actions: {
+    // 경기장 관련 액션
+    async fetchVenues({ commit }, params) {
+      commit('SET_VENUES_LOADING', true)
+      commit('SET_VENUES_ERROR', null)
+      try {
+        const response = await venueAPI.getVenues(params)
+        commit('SET_VENUES', response.data.results || response.data)
+        return response
+      } catch (error) {
+        console.error('경기장 목록 조회 실패:', error)
+        commit('SET_VENUES_ERROR', error.message || '경기장 목록을 불러오는데 실패했습니다.')
+        throw error
+      } finally {
+        commit('SET_VENUES_LOADING', false)
+      }
+    },
+    
+    async fetchVenue({ commit }, id) {
+      commit('SET_VENUE_LOADING', true)
+      commit('SET_VENUE_ERROR', null)
+      try {
+        const response = await venueAPI.getVenue(id)
+        commit('SET_CURRENT_VENUE', response.data)
+        return response
+      } catch (error) {
+        console.error('경기장 상세 조회 실패:', error)
+        commit('SET_VENUE_ERROR', error.message || '경기장 정보를 불러오는데 실패했습니다.')
+        throw error
+      } finally {
+        commit('SET_VENUE_LOADING', false)
+      }
+    }
+  }
+}
+
+// 루트 스토어 생성
+const store = createStore({
+  modules: {
+    auth,
+    teams,
+    matches,
+    venues
+  },
+  // 루트 레벨 getters (모듈 네임스페이스 없이 접근 가능)
+  getters: {
+    isAuthenticated: state => state.auth.isAuthenticated,
+    user: state => state.auth.user
+  }
+})
+
+export default store 

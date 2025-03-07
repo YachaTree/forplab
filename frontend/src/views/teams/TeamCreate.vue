@@ -243,18 +243,21 @@ export default {
         formData.append('name', this.form.name);
         formData.append('level', this.form.level);
         formData.append('region', this.form.region);
-        formData.append('is_recruiting', this.form.is_recruiting);
+        formData.append('is_recruiting', this.form.is_recruiting ? 'true' : 'false');
+        formData.append('is_private', this.form.is_private ? 'true' : 'false');
         
         if (this.form.description) {
           formData.append('description', this.form.description);
         }
         
-        if (this.form.logo) {
-          formData.append('logo', this.form.logo);
+        // 로고 파일이 있는 경우에만 추가
+        if (this.form.logo && this.form.logo instanceof File) {
+          formData.append('logo', this.form.logo, this.form.logo.name);
+          console.log('로고 파일 추가:', this.form.logo.name, this.form.logo.type, this.form.logo.size);
         }
         
         // 팀 생성 API 호출
-        const response = await this.$store.dispatch('createTeam', formData);
+        const response = await this.$store.dispatch('teams/createTeam', formData);
         
         // 성공 메시지 표시
         alert('팀이 성공적으로 생성되었습니다.');
@@ -277,6 +280,11 @@ export default {
         if (error && error.response && error.response.data) {
           const serverErrors = error.response.data;
           console.log('서버 오류 응답:', serverErrors);
+          
+          // 상세 오류 정보 출력
+          console.log('상태 코드:', error.response.status);
+          console.log('상태 텍스트:', error.response.statusText);
+          console.log('오류 데이터:', JSON.stringify(error.response.data));
           
           // 필드별 에러 메시지 설정
           for (const field in serverErrors) {

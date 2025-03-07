@@ -157,19 +157,31 @@ export const teamAPI = {
     return apiClient.get(`/teams/${id}/`);
   },
   createTeam(teamData) {
-    return apiClient.post('/teams/create/', teamData);
+    return apiClient.post('/teams/create/', teamData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
   },
   updateTeam(id, teamData) {
     return apiClient.put(`/teams/${id}/update/`, teamData);
   },
   deleteTeam(id) {
-    return apiClient.delete(`/teams/${id}/delete/`);
+    // ID를 문자열로 변환하여 전달
+    return apiClient.delete(`/teams/${String(id)}/delete/`, {
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
   },
   joinTeam(id, requestData) {
     return apiClient.post(`/teams/${id}/join/`, requestData);
   },
   leaveTeam(id) {
     return apiClient.post(`/teams/${id}/leave/`);
+  },
+  cancelJoinRequest(id) {
+    return apiClient.post(`/teams/${id}/cancel-request/`);
   },
   getMembers(id) {
     return apiClient.get(`/teams/${id}/members/`);

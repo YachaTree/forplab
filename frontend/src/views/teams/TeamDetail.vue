@@ -14,7 +14,7 @@
       <!-- 상단 헤더 -->
       <div class="team-header">
         <div class="team-logo">
-          <img :src="team.logo || '/img/default-team.jpg'" alt="Team" />
+          <img :src="team.logo || '/img/default-team.jpg'" alt="Team Logo" />
         </div>
         
         <div class="team-info-header">
@@ -26,7 +26,7 @@
           
           <div class="team-region">
             <i class="fas fa-map-marker-alt"></i>
-            <span>{{ team.region }}</span>
+            <span>{{ getRegionText(team.region) }}</span>
           </div>
           
           <div class="team-stats">
@@ -47,7 +47,7 @@
           </div>
           
           <!-- 팀 가입 버튼 -->
-          <div class="team-actions" v-if="isAuthenticated && !isTeamMember && !hasJoinRequest">
+          <div class="team-actions" v-if="isAuthenticated && !isTeamMember && !isTeamLeader && !hasJoinRequest">
             <button 
               class="join-team-btn" 
               @click="showJoinRequestForm = true"
@@ -130,7 +130,7 @@
         <div v-if="team.members && team.members.length > 0" class="members-list">
           <div v-for="member in team.members" :key="member.id" class="member-card">
             <div class="member-avatar">
-              <img :src="member.profile_image || '/img/default-avatar.png'" alt="User" />
+              <img :src="member.user.profile_image || '/img/default-avatar.png'" alt="User" />
             </div>
             
             <div class="member-info">
@@ -250,13 +250,15 @@ export default {
   
   computed: {
     ...mapState({
-      team: state => state.currentTeam,
-      loading: state => state.teamLoading,
-      error: state => state.teamError,
-      user: state => state.user
+      team: state => state.teams.currentTeam,
+      loading: state => state.teams.teamLoading,
+      error: state => state.teams.teamError,
+      user: state => state.auth.user
     }),
     
-    ...mapGetters(['isAuthenticated']),
+    ...mapGetters({
+      isAuthenticated: 'auth/isAuthenticated'
+    }),
     
     isTeamMember() {
       if (!this.isAuthenticated || !this.team || !this.team.members || !this.user) {
@@ -267,12 +269,34 @@ export default {
     },
     
     isTeamLeader() {
-      if (!this.isAuthenticated || !this.team || !this.team.members || !this.user) {
+      if (!this.isAuthenticated || !this.team || !this.user) {
         return false;
       }
       
-      const currentUser = this.team.members.find(member => member.id === this.user.id);
-      return currentUser && currentUser.is_leader;
+      // 팀 소유자(owner) 확인
+      if (this.team.owner && this.team.owner.id === this.user.id) {
+        return true;
+      }
+      
+      // 팀 소유자 ID가 문자열인 경우 (API 응답 형식에 따라 다를 수 있음)
+      if (this.team.owner && String(this.team.owner.id) === String(this.user.id)) {
+        return true;
+      }
+      
+      // 팀 소유자 필드가 다른 형식인 경우 (is_owner 필드가 있는 경우)
+      if (this.team.is_owner === true) {
+        return true;
+      }
+      
+      // 기존 방식으로도 확인 (팀원 중 리더인지)
+      if (this.team.members) {
+        const currentUser = this.team.members.find(member => member.user && member.user.id === this.user.id);
+        if (currentUser && currentUser.role === 'CAPTAIN') {
+          return true;
+        }
+      }
+      
+      return false;
     },
     
     hasJoinRequest() {
@@ -286,14 +310,32 @@ export default {
   
   created() {
     this.fetchTeam();
+    if (this.isAuthenticated) {
+      this.fetchUserProfile();
+    }
+  },
+  
+  watch: {
+    team() {
+      // 팀 데이터가 변경되었을 때 필요한 작업이 있으면 여기에 추가
+    },
+    
+    isAuthenticated(newValue) {
+      if (newValue && !this.user) {
+        this.fetchUserProfile();
+      }
+    }
   },
   
   methods: {
-    ...mapActions(['fetchTeam']),
+    ...mapActions({
+      fetchTeamAction: 'teams/fetchTeam',
+      fetchUserProfile: 'auth/fetchProfile'
+    }),
     
     async fetchTeam() {
       try {
-        await this.$store.dispatch('fetchTeam', this.$route.params.id);
+        await this.fetchTeamAction(this.$route.params.id);
       } catch (error) {
         console.error('팀 상세 조회 실패:', error);
       }
@@ -305,7 +347,7 @@ export default {
       this.joinRequestSubmitting = true;
       
       try {
-        await this.$store.dispatch('joinTeam', {
+        await this.$store.dispatch('teams/joinTeam', {
           id: this.$route.params.id,
           requestData: this.joinRequestForm
         });
@@ -319,10 +361,10 @@ export default {
           position: ''
         };
         
-        this.$toast.success('가입 신청이 성공적으로 등록되었습니다.');
+        alert('가입 신청이 성공적으로 등록되었습니다.');
       } catch (error) {
         console.error('팀 가입 신청 실패:', error);
-        this.$toast.error('가입 신청에 실패했습니다. 다시 시도해주세요.');
+        alert('가입 신청에 실패했습니다. 다시 시도해주세요.');
       } finally {
         this.joinRequestSubmitting = false;
       }
@@ -339,12 +381,12 @@ export default {
     async confirmCancelRequest() {
       if (confirm('가입 신청을 취소하시겠습니까?')) {
         try {
-          await this.$store.dispatch('cancelJoinRequest', this.$route.params.id);
+          await this.$store.dispatch('teams/cancelJoinRequest', this.$route.params.id);
           await this.fetchTeam();
-          this.$toast.success('가입 신청이 취소되었습니다.');
+          alert('가입 신청이 취소되었습니다.');
         } catch (error) {
           console.error('가입 신청 취소 실패:', error);
-          this.$toast.error('가입 신청 취소에 실패했습니다. 다시 시도해주세요.');
+          alert('가입 신청 취소에 실패했습니다. 다시 시도해주세요.');
         }
       }
     },
@@ -352,41 +394,41 @@ export default {
     async confirmLeaveTeam() {
       if (confirm('정말 팀을 탈퇴하시겠습니까?')) {
         try {
-          await this.$store.dispatch('leaveTeam', this.$route.params.id);
+          await this.$store.dispatch('teams/leaveTeam', this.$route.params.id);
           await this.fetchTeam();
-          this.$toast.success('팀에서 탈퇴했습니다.');
+          alert('팀에서 탈퇴했습니다.');
         } catch (error) {
           console.error('팀 탈퇴 실패:', error);
-          this.$toast.error('팀 탈퇴에 실패했습니다. 다시 시도해주세요.');
+          alert('팀 탈퇴에 실패했습니다. 다시 시도해주세요.');
         }
       }
     },
     
     async approveJoinRequest(requestId) {
       try {
-        await this.$store.dispatch('approveJoinRequest', {
+        await this.$store.dispatch('teams/acceptJoinRequest', {
           teamId: this.$route.params.id,
           requestId
         });
         await this.fetchTeam();
-        this.$toast.success('가입 신청을 승인했습니다.');
+        alert('가입 신청을 승인했습니다.');
       } catch (error) {
         console.error('가입 신청 승인 실패:', error);
-        this.$toast.error('가입 신청 승인에 실패했습니다. 다시 시도해주세요.');
+        alert('가입 신청 승인에 실패했습니다. 다시 시도해주세요.');
       }
     },
     
     async rejectJoinRequest(requestId) {
       try {
-        await this.$store.dispatch('rejectJoinRequest', {
+        await this.$store.dispatch('teams/rejectJoinRequest', {
           teamId: this.$route.params.id,
           requestId
         });
         await this.fetchTeam();
-        this.$toast.success('가입 신청을 거절했습니다.');
+        alert('가입 신청을 거절했습니다.');
       } catch (error) {
         console.error('가입 신청 거절 실패:', error);
-        this.$toast.error('가입 신청 거절에 실패했습니다. 다시 시도해주세요.');
+        alert('가입 신청 거절에 실패했습니다. 다시 시도해주세요.');
       }
     },
     
@@ -415,6 +457,17 @@ export default {
       };
       
       return levelMap[level] || level;
+    },
+    
+    getRegionText(region) {
+      const regionMap = {
+        'seoul': '서울',
+        'gyeonggi': '경기',
+        'incheon': '인천',
+        'other': '기타'
+      };
+      
+      return regionMap[region] || region;
     },
     
     getPositionText(position) {

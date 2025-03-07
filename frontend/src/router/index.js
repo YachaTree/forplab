@@ -109,7 +109,7 @@ const router = createRouter({
 
 // 네비게이션 가드
 router.beforeEach((to, from, next) => {
-  const isAuthenticated = store.getters.isAuthenticated;
+  const isAuthenticated = store.getters['auth/isAuthenticated'];
   
   // 인증이 필요한 페이지
   if (to.meta.requiresAuth && !isAuthenticated) {
