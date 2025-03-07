@@ -47,7 +47,7 @@
           </div>
           
           <!-- 팀 가입 버튼 -->
-          <div class="team-actions" v-if="isAuthenticated && !isTeamMember && !hasJoinRequest">
+          <div class="team-actions" v-if="isAuthenticated && !isTeamMember && !isTeamLeader && !hasJoinRequest">
             <button 
               class="join-team-btn" 
               @click="showJoinRequestForm = true"
@@ -273,24 +273,18 @@ export default {
         return false;
       }
       
-      console.log('팀 소유자 ID:', this.team.owner ? this.team.owner.id : 'undefined');
-      console.log('현재 사용자 ID:', this.user.id);
-      
       // 팀 소유자(owner) 확인
       if (this.team.owner && this.team.owner.id === this.user.id) {
-        console.log('소유자 확인 성공!');
         return true;
       }
       
       // 팀 소유자 ID가 문자열인 경우 (API 응답 형식에 따라 다를 수 있음)
       if (this.team.owner && String(this.team.owner.id) === String(this.user.id)) {
-        console.log('소유자 확인 성공! (문자열 비교)');
         return true;
       }
       
       // 팀 소유자 필드가 다른 형식인 경우 (is_owner 필드가 있는 경우)
       if (this.team.is_owner === true) {
-        console.log('is_owner 필드로 확인 성공!');
         return true;
       }
       
@@ -298,7 +292,6 @@ export default {
       if (this.team.members) {
         const currentUser = this.team.members.find(member => member.user && member.user.id === this.user.id);
         if (currentUser && currentUser.role === 'CAPTAIN') {
-          console.log('팀원 중 주장으로 확인 성공!');
           return true;
         }
       }
@@ -324,12 +317,7 @@ export default {
   
   watch: {
     team(newTeam) {
-      if (newTeam) {
-        console.log('팀 데이터:', newTeam);
-        console.log('현재 사용자:', this.user);
-        console.log('팀 소유자:', newTeam.owner);
-        console.log('isTeamLeader:', this.isTeamLeader);
-      }
+      // 팀 데이터가 변경되었을 때 필요한 작업이 있으면 여기에 추가
     },
     
     isAuthenticated(newValue) {
@@ -347,8 +335,6 @@ export default {
     
     async fetchTeam() {
       try {
-        console.log('팀 ID:', this.$route.params.id);
-        console.log('인증 토큰:', localStorage.getItem('token'));
         await this.fetchTeamAction(this.$route.params.id);
       } catch (error) {
         console.error('팀 상세 조회 실패:', error);
