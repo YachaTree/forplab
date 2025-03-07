@@ -316,7 +316,7 @@ export default {
   },
   
   watch: {
-    team(newTeam) {
+    team() {
       // 팀 데이터가 변경되었을 때 필요한 작업이 있으면 여기에 추가
     },
     
