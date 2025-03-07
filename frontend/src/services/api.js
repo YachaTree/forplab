@@ -167,7 +167,7 @@ export const teamAPI = {
     return apiClient.put(`/teams/${id}/update/`, teamData);
   },
   deleteTeam(id) {
-    return apiClient.delete(`/teams/${id}/`);
+    return apiClient.delete(`/teams/${id}/delete/`);
   },
   joinTeam(id, requestData) {
     return apiClient.post(`/teams/${id}/join/`, requestData);
