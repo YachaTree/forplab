@@ -57,12 +57,17 @@ const auth = {
       }
     },
     
-    async register(_, userData) {
+    async register({ commit }, userData) {
+      commit('SET_LOADING', true)
+      commit('SET_ERROR', null)
       try {
         const response = await authAPI.register(userData)
+        commit('SET_LOADING', false)
         return response
       } catch (error) {
         console.error('회원가입 실패:', error)
+        commit('SET_ERROR', error.message || '회원가입에 실패했습니다.')
+        commit('SET_LOADING', false)
         throw error
       }
     },
