@@ -263,6 +263,9 @@ const teams = {
         return response
       } catch (error) {
         console.error('팀 삭제 실패:', error)
+        // 오류가 발생해도 현재 팀 정보 초기화
+        commit('SET_CURRENT_TEAM', null)
+        // 오류를 상위로 전파
         throw error
       }
     },

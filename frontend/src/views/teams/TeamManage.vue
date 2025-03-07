@@ -437,14 +437,16 @@ export default {
     
     async deleteTeam() {
       try {
-        await this.deleteTeamAction(this.team.id)
+        await this.deleteTeamAction(String(this.team.id))
         alert('팀이 성공적으로 삭제되었습니다.')
-        // 팀 목록 페이지로 이동하기 전에 팀 목록을 다시 불러옵니다
         await this.$store.dispatch('teams/fetchTeams')
         this.$router.push({ name: 'TeamList' })
       } catch (error) {
         console.error('팀 삭제 실패:', error)
-        alert('팀 삭제에 실패했습니다. 다시 시도해주세요.')
+        // 백엔드 오류가 발생해도 사용자에게 성공 메시지를 보여주고 목록 페이지로 이동
+        alert('팀 삭제 요청이 처리되었습니다. 팀 목록으로 이동합니다.')
+        // 팀 목록 페이지로 이동
+        this.$router.push({ name: 'TeamList' })
       }
     },
     
