@@ -158,12 +158,12 @@ export default {
     });
     
     // 스토어에서 상태 가져오기
-    const loading = computed(() => store.getters.loading);
-    const error = computed(() => store.getters.error);
+    const loading = computed(() => store.getters['auth/loading']);
+    const error = computed(() => store.getters['auth/error']);
     
     // 회원가입 처리
     const handleRegister = async () => {
-      const success = await store.dispatch('register', formData);
+      const success = await store.dispatch('auth/register', formData);
       
       if (success) {
         // 회원가입 성공 시 로그인 페이지로 이동
