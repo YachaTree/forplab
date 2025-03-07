@@ -65,15 +65,19 @@ export default {
     
     // 로그인 처리
     const handleLogin = async () => {
-      const success = await store.dispatch('auth/login', {
-        username: username.value,
-        password: password.value,
-      });
-      
-      if (success) {
-        // 리다이렉트 처리
-        const redirectPath = route.query.redirect || '/';
-        router.push(redirectPath);
+      try {
+        const success = await store.dispatch('auth/login', {
+          username: username.value,
+          password: password.value,
+        });
+        
+        if (success) {
+          // 리다이렉트 처리
+          const redirectPath = route.query.redirect || '/';
+          router.push(redirectPath);
+        }
+      } catch (error) {
+        console.error('로그인 실패:', error);
       }
     };
     
