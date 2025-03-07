@@ -116,7 +116,7 @@ export default {
     
     // 로그아웃 처리
     const handleLogout = () => {
-      store.dispatch('logout');
+      store.dispatch('auth/logout');
       router.push('/');
       showUserMenu.value = false;
     };

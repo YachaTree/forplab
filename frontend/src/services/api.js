@@ -91,7 +91,8 @@ export const authAPI = {
     return apiClient.post('/users/register/', userData);
   },
   logout() {
-    return apiClient.post('/users/logout/');
+    // 백엔드에 로그아웃 API가 없으므로 성공한 것처럼 빈 객체를 반환
+    return Promise.resolve({});
   },
   getProfile() {
     return apiClient.get('/users/profile/');
