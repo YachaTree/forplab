@@ -250,8 +250,10 @@ export default {
           formData.append('description', this.form.description);
         }
         
-        if (this.form.logo) {
-          formData.append('logo', this.form.logo);
+        // 로고 파일이 있는 경우에만 추가
+        if (this.form.logo && this.form.logo instanceof File) {
+          formData.append('logo', this.form.logo, this.form.logo.name);
+          console.log('로고 파일 추가:', this.form.logo.name, this.form.logo.type, this.form.logo.size);
         }
         
         // 팀 생성 API 호출

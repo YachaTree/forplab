@@ -71,11 +71,8 @@
     
     <div v-if="!loading && !error && teams.length > 0" class="teams-grid">
       <div v-for="team in teams" :key="team.id" class="team-card" @click="goToTeamDetail(team.id)">
-        <div class="team-image">
-          <img :src="team.logo || '/img/default-team.jpg'" alt="Team" />
-          <div class="team-level" :class="'level-' + team.level">
-            {{ getLevelText(team.level) }}
-          </div>
+        <div class="team-logo">
+          <img :src="team.logo || '/img/default-team.jpg'" alt="Team Logo" />
         </div>
         
         <div class="team-content">
@@ -83,7 +80,7 @@
           
           <div class="team-region">
             <i class="fas fa-map-marker-alt"></i>
-            <span>{{ team.region }}</span>
+            <span>{{ getRegionText(team.region) }}</span>
           </div>
           
           <div class="team-info">
@@ -238,6 +235,17 @@ export default {
       };
       
       return levelMap[level] || level;
+    },
+    
+    getRegionText(region) {
+      const regionMap = {
+        'seoul': '서울',
+        'gyeonggi': '경기',
+        'incheon': '인천',
+        'other': '기타'
+      };
+      
+      return regionMap[region] || region;
     }
   }
 };
@@ -353,13 +361,13 @@ export default {
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
 }
 
-.team-image {
+.team-logo {
   position: relative;
   height: 180px;
   overflow: hidden;
 }
 
-.team-image img {
+.team-logo img {
   width: 100%;
   height: 100%;
   object-fit: cover;

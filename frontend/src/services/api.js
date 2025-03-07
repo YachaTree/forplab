@@ -167,7 +167,12 @@ export const teamAPI = {
     return apiClient.put(`/teams/${id}/update/`, teamData);
   },
   deleteTeam(id) {
-    return apiClient.delete(`/teams/${id}/delete/`);
+    // ID를 문자열로 변환하여 전달
+    return apiClient.delete(`/teams/${String(id)}/delete/`, {
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
   },
   joinTeam(id, requestData) {
     return apiClient.post(`/teams/${id}/join/`, requestData);

@@ -14,7 +14,7 @@
       <!-- 상단 헤더 -->
       <div class="team-header">
         <div class="team-logo">
-          <img :src="team.logo || '/img/default-team.jpg'" alt="Team" />
+          <img :src="team.logo || '/img/default-team.jpg'" alt="Team Logo" />
         </div>
         
         <div class="team-info-header">
@@ -26,7 +26,7 @@
           
           <div class="team-region">
             <i class="fas fa-map-marker-alt"></i>
-            <span>{{ team.region }}</span>
+            <span>{{ getRegionText(team.region) }}</span>
           </div>
           
           <div class="team-stats">
@@ -130,7 +130,7 @@
         <div v-if="team.members && team.members.length > 0" class="members-list">
           <div v-for="member in team.members" :key="member.id" class="member-card">
             <div class="member-avatar">
-              <img :src="member.profile_image || '/img/default-avatar.png'" alt="User" />
+              <img :src="member.user.profile_image || '/img/default-avatar.png'" alt="User" />
             </div>
             
             <div class="member-info">
@@ -457,6 +457,17 @@ export default {
       };
       
       return levelMap[level] || level;
+    },
+    
+    getRegionText(region) {
+      const regionMap = {
+        'seoul': '서울',
+        'gyeonggi': '경기',
+        'incheon': '인천',
+        'other': '기타'
+      };
+      
+      return regionMap[region] || region;
     },
     
     getPositionText(position) {
