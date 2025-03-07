@@ -60,12 +60,12 @@ export default {
     const password = ref('');
     
     // 스토어에서 상태 가져오기
-    const loading = computed(() => store.getters.loading);
-    const error = computed(() => store.getters.error);
+    const loading = computed(() => store.getters['auth/loading']);
+    const error = computed(() => store.getters['auth/error']);
     
     // 로그인 처리
     const handleLogin = async () => {
-      const success = await store.dispatch('login', {
+      const success = await store.dispatch('auth/login', {
         username: username.value,
         password: password.value,
       });

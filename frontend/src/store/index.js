@@ -8,10 +8,14 @@ const auth = {
     user: null,
     token: localStorage.getItem('token') || null,
     isAuthenticated: !!localStorage.getItem('token'),
+    loading: false,
+    error: null
   },
   getters: {
     isAuthenticated: state => state.isAuthenticated,
     user: state => state.user,
+    loading: state => state.loading,
+    error: state => state.error
   },
   mutations: {
     SET_TOKEN(state, token) {
@@ -26,18 +30,29 @@ const auth = {
     SET_USER(state, user) {
       state.user = user
     },
+    SET_LOADING(state, loading) {
+      state.loading = loading
+    },
+    SET_ERROR(state, error) {
+      state.error = error
+    }
   },
   actions: {
     // 인증 관련 액션
     async login({ commit, dispatch }, credentials) {
+      commit('SET_LOADING', true)
+      commit('SET_ERROR', null)
       try {
         const response = await authAPI.login(credentials)
         const token = response.data.access
         commit('SET_TOKEN', token)
         await dispatch('fetchProfile')
+        commit('SET_LOADING', false)
         return response
       } catch (error) {
         console.error('로그인 실패:', error)
+        commit('SET_ERROR', error.message || '로그인에 실패했습니다.')
+        commit('SET_LOADING', false)
         throw error
       }
     },
