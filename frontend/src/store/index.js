@@ -341,14 +341,62 @@ export default createStore({
       }
     },
     
-    async updateTeam({ dispatch }, { id, teamData }) {
+    async updateTeam({ dispatch }, { teamId, teamData }) {
       try {
-        const response = await teamAPI.updateTeam(id, teamData)
+        const response = await teamAPI.updateTeam(teamId, teamData)
         // 팀 정보 업데이트 후 다시 조회
-        dispatch('fetchTeam', id)
+        await dispatch('fetchTeam', teamId)
         return response
       } catch (error) {
         console.error('팀 정보 업데이트 실패:', error)
+        throw error
+      }
+    },
+    
+    async updateMemberRole({ dispatch }, { teamId, memberId, role }) {
+      try {
+        const response = await teamAPI.updateMemberRole(teamId, memberId, { role })
+        // 팀 정보 업데이트 후 다시 조회
+        await dispatch('fetchTeam', teamId)
+        return response
+      } catch (error) {
+        console.error('팀원 역할 변경 실패:', error)
+        throw error
+      }
+    },
+    
+    async removeMember({ dispatch }, { teamId, memberId }) {
+      try {
+        const response = await teamAPI.removeMember(teamId, memberId)
+        // 팀 정보 업데이트 후 다시 조회
+        await dispatch('fetchTeam', teamId)
+        return response
+      } catch (error) {
+        console.error('팀원 제외 실패:', error)
+        throw error
+      }
+    },
+    
+    async acceptJoinRequest({ dispatch }, { teamId, requestId }) {
+      try {
+        const response = await teamAPI.acceptJoinRequest(teamId, requestId)
+        // 팀 정보 업데이트 후 다시 조회
+        await dispatch('fetchTeam', teamId)
+        return response
+      } catch (error) {
+        console.error('가입 신청 수락 실패:', error)
+        throw error
+      }
+    },
+    
+    async rejectJoinRequest({ dispatch }, { teamId, requestId }) {
+      try {
+        const response = await teamAPI.rejectJoinRequest(teamId, requestId)
+        // 팀 정보 업데이트 후 다시 조회
+        await dispatch('fetchTeam', teamId)
+        return response
+      } catch (error) {
+        console.error('가입 신청 거절 실패:', error)
         throw error
       }
     },
@@ -412,26 +460,6 @@ export default createStore({
         return response
       } catch (error) {
         console.error('가입 신청 목록 조회 실패:', error)
-        throw error
-      }
-    },
-    
-    async approveJoinRequest(_, { teamId, requestId }) {
-      try {
-        const response = await teamAPI.approveJoinRequest(teamId, requestId)
-        return response
-      } catch (error) {
-        console.error('가입 신청 승인 실패:', error)
-        throw error
-      }
-    },
-    
-    async rejectJoinRequest(_, { teamId, requestId }) {
-      try {
-        const response = await teamAPI.rejectJoinRequest(teamId, requestId)
-        return response
-      } catch (error) {
-        console.error('가입 신청 거절 실패:', error)
         throw error
       }
     },

@@ -31,6 +31,16 @@ apiClient.interceptors.response.use(
     return response;
   },
   async (error) => {
+    // 네트워크 오류 처리
+    if (!error.response) {
+      console.error('네트워크 오류 발생:', error.message);
+      // 네트워크 오류 발생 시 사용자에게 알림
+      if (error.message === 'Network Error') {
+        console.error('서버에 연결할 수 없습니다. 네트워크 연결을 확인하거나 서버가 실행 중인지 확인하세요.');
+      }
+      return Promise.reject(error);
+    }
+    
     const originalRequest = error.config;
     
     // 토큰 만료 에러 (401) 및 재시도하지 않은 요청인 경우
@@ -167,8 +177,14 @@ export const teamAPI = {
   getJoinRequests(id) {
     return apiClient.get(`/teams/${id}/requests/`);
   },
-  approveJoinRequest(teamId, requestId) {
-    return apiClient.post(`/teams/${teamId}/requests/${requestId}/approve/`);
+  updateMemberRole(teamId, memberId, roleData) {
+    return apiClient.put(`/teams/${teamId}/members/${memberId}/update/`, roleData);
+  },
+  removeMember(teamId, memberId) {
+    return apiClient.delete(`/teams/${teamId}/members/${memberId}/remove/`);
+  },
+  acceptJoinRequest(teamId, requestId) {
+    return apiClient.post(`/teams/${teamId}/requests/${requestId}/accept/`);
   },
   rejectJoinRequest(teamId, requestId) {
     return apiClient.post(`/teams/${teamId}/requests/${requestId}/reject/`);

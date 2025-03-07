@@ -391,7 +391,7 @@ export default {
     },
     
     goToTeamManage() {
-      this.$router.push({ name: 'TeamManage', params: { id: this.$route.params.id } });
+      this.$router.push({ name: 'TeamManage', params: { id: this.team.id } });
     },
     
     goToMatchDetail(matchId) {
