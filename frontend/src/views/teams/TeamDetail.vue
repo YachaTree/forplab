@@ -102,11 +102,11 @@
           <div class="form-group">
             <label>포지션</label>
             <select v-model="joinRequestForm.position">
-              <option value="">포지션 선택</option>
-              <option value="GK">골키퍼 (GK)</option>
-              <option value="DF">수비수 (DF)</option>
-              <option value="MF">미드필더 (MF)</option>
-              <option value="FW">공격수 (FW)</option>
+              <option value="">선택</option>
+              <option value="GK">골키퍼</option>
+              <option value="DF">수비수</option>
+              <option value="MF">미드필더</option>
+              <option value="FW">공격수</option>
             </select>
           </div>
           
@@ -349,7 +349,10 @@ export default {
       try {
         await this.$store.dispatch('teams/joinTeam', {
           id: this.$route.params.id,
-          requestData: this.joinRequestForm
+          requestData: {
+            message: this.joinRequestForm.message,
+            position: this.joinRequestForm.position
+          }
         });
         
         // 가입 신청 성공 후 팀 정보 다시 조회
@@ -361,10 +364,10 @@ export default {
           position: ''
         };
         
-        alert('가입 신청이 성공적으로 등록되었습니다.');
+        alert('팀 가입 신청이 완료되었습니다.');
       } catch (error) {
         console.error('팀 가입 신청 실패:', error);
-        alert('가입 신청에 실패했습니다. 다시 시도해주세요.');
+        alert('팀 가입 신청에 실패했습니다. 다시 시도해주세요.');
       } finally {
         this.joinRequestSubmitting = false;
       }
@@ -934,6 +937,10 @@ export default {
   margin-bottom: 10px;
 }
 
+.request-message {
+  margin-bottom: 10px;
+}
+
 .detail-label {
   font-weight: 500;
   color: #333;
@@ -942,11 +949,6 @@ export default {
 
 .detail-value {
   color: #555;
-}
-
-.request-message p {
-  margin: 5px 0 0;
-  line-height: 1.5;
 }
 
 .request-actions {
