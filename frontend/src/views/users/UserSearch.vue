@@ -96,7 +96,8 @@
 </template>
 
 <script>
-import { mapState, mapActions } from 'vuex';
+import { mapState, mapActions, mapGetters } from 'vuex';
+import { getProfileImageUrl } from '@/utils/imageUtils';
 
 export default {
   name: 'UserSearch',
@@ -113,8 +114,14 @@ export default {
   computed: {
     ...mapState('auth', ['user']),
     ...mapState('friends', ['friends', 'friendRequests', 'sentRequests']),
+    ...mapGetters('friends', {
+      storeCurrentUserId: 'currentUserId',
+      checkIsFriend: 'isFriend',
+      checkHasSentRequest: 'hasSentRequestTo',
+      checkHasReceivedRequest: 'hasReceivedRequestFrom'
+    }),
     currentUserId() {
-      return this.user ? this.user.id : null;
+      return this.storeCurrentUserId;
     }
   },
   methods: {
@@ -150,40 +157,20 @@ export default {
     },
     
     getProfileImageUrl(user) {
-      if (!user || !user.profile_image) {
-        return require('@/assets/default-avatar.png');
-      }
-      
-      const imageUrl = user.profile_image;
-      if (imageUrl.startsWith('http')) {
-        return imageUrl;
-      } else if (imageUrl.startsWith('/media')) {
-        return `${process.env.VUE_APP_API_URL}${imageUrl}`;
-      } else {
-        return `${process.env.VUE_APP_API_URL}/media/${imageUrl}`;
-      }
+      return getProfileImageUrl(user);
     },
     
-    // 친구 관계 확인 메소드
+    // 친구 관계 확인 메소드 (getter 사용)
     isFriend(user) {
-      return this.friends.some(friendship => 
-        (friendship.from_user.id === user.id || friendship.to_user.id === user.id) && 
-        friendship.status === 'ACCEPTED'
-      );
+      return this.checkIsFriend(user.id);
     },
     
     hasSentRequest(user) {
-      return this.sentRequests.some(request => 
-        request.to_user.id === user.id && 
-        request.status === 'PENDING'
-      );
+      return this.checkHasSentRequest(user.id);
     },
     
     hasReceivedRequest(user) {
-      return this.friendRequests.some(request => 
-        request.from_user.id === user.id && 
-        request.status === 'PENDING'
-      );
+      return this.checkHasReceivedRequest(user.id);
     },
     
     getRequestId(user) {

@@ -189,7 +189,8 @@
 </template>
 
 <script>
-import { mapState, mapActions } from 'vuex';
+import { mapState, mapActions, mapGetters } from 'vuex';
+import { getProfileImageUrl } from '@/utils/imageUtils';
 
 export default {
   name: 'FriendsPage',
@@ -203,8 +204,11 @@ export default {
   computed: {
     ...mapState('friends', ['friends', 'friendRequests', 'sentRequests', 'loading', 'error']),
     ...mapState('auth', ['user']),
+    ...mapGetters('friends', {
+      storeCurrentUserId: 'currentUserId'
+    }),
     currentUserId() {
-      return this.user ? this.user.id : null;
+      return this.storeCurrentUserId;
     }
   },
   methods: {
@@ -237,18 +241,7 @@ export default {
     },
     
     getProfileImageUrl(user) {
-      if (!user || !user.profile_image) {
-        return require('@/assets/default-avatar.png');
-      }
-      
-      const imageUrl = user.profile_image;
-      if (imageUrl.startsWith('http')) {
-        return imageUrl;
-      } else if (imageUrl.startsWith('/media')) {
-        return `${process.env.VUE_APP_API_URL}${imageUrl}`;
-      } else {
-        return `${process.env.VUE_APP_API_URL}/media/${imageUrl}`;
-      }
+      return getProfileImageUrl(user);
     },
     
     // 친구 요청 관련 메소드

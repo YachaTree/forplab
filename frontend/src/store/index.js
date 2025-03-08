@@ -553,6 +553,36 @@ export const friends = {
     loading: false,
     error: null
   },
+  getters: {
+    // 현재 사용자 ID 가져오기 (auth 모듈에 의존)
+    currentUserId: (state, getters, rootState) => {
+      return rootState.auth.user ? rootState.auth.user.id : null;
+    },
+    
+    // 특정 사용자가 친구인지 확인
+    isFriend: (state) => (userId) => {
+      return state.friends.some(friendship => 
+        (friendship.from_user.id === userId || friendship.to_user.id === userId) && 
+        friendship.status === 'ACCEPTED'
+      );
+    },
+    
+    // 특정 사용자에게 친구 요청을 보냈는지 확인
+    hasSentRequestTo: (state) => (userId) => {
+      return state.sentRequests.some(request => 
+        request.to_user.id === userId && 
+        request.status === 'PENDING'
+      );
+    },
+    
+    // 특정 사용자로부터 친구 요청을 받았는지 확인
+    hasReceivedRequestFrom: (state) => (userId) => {
+      return state.friendRequests.some(request => 
+        request.from_user.id === userId && 
+        request.status === 'PENDING'
+      );
+    }
+  },
   mutations: {
     SET_FRIENDS(state, friends) {
       state.friends = friends;

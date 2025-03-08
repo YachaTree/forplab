@@ -288,7 +288,8 @@
 </template>
 
 <script>
-import { mapState, mapActions } from 'vuex';
+import { mapState, mapActions, mapGetters } from 'vuex';
+import { getProfileImageUrl, addTimestampToUrl } from '@/utils/imageUtils';
 
 export default {
   name: 'UserProfile',
@@ -326,6 +327,11 @@ export default {
       friends: state => state.friends.friends,
       friendRequests: state => state.friends.friendRequests,
       sentRequests: state => state.friends.sentRequests
+    }),
+    ...mapGetters('friends', {
+      checkIsFriend: 'isFriend',
+      checkHasSentRequest: 'hasSentRequestTo',
+      checkHasReceivedRequest: 'hasReceivedRequestFrom'
     }),
     
     isCurrentUser() {
@@ -757,18 +763,8 @@ export default {
     },
     
     getProfileImageUrl(imageUrl) {
-      if (!imageUrl) {
-        return '/img/default-avatar.png';
-      }
-      
-      // 이미 타임스탬프가 있는 경우 그대로 반환
-      if (imageUrl.includes('?t=')) {
-        return imageUrl;
-      }
-      
       // 캐시 방지를 위해 타임스탬프 추가
-      const timestamp = new Date().getTime();
-      return `${imageUrl}?t=${timestamp}`;
+      return addTimestampToUrl(getProfileImageUrl(imageUrl));
     },
     
     getTeamLogoUrl(logoUrl) {
@@ -827,23 +823,16 @@ export default {
     checkFriendshipStatus() {
       if (!this.user || !this.currentUser || this.isCurrentUser) return;
       
+      const userId = this.user.id;
+      
       // 이미 친구인지 확인
-      this.isFriend = this.friends.some(friendship => 
-        (friendship.from_user.id === this.user.id || friendship.to_user.id === this.user.id) && 
-        friendship.status === 'ACCEPTED'
-      );
+      this.isFriend = this.checkIsFriend(userId);
       
       // 친구 요청을 보냈는지 확인
-      this.hasSentRequest = this.sentRequests.some(request => 
-        request.to_user.id === this.user.id && 
-        request.status === 'PENDING'
-      );
+      this.hasSentRequest = this.checkHasSentRequest(userId);
       
       // 친구 요청을 받았는지 확인
-      this.hasReceivedRequest = this.friendRequests.some(request => 
-        request.from_user.id === this.user.id && 
-        request.status === 'PENDING'
-      );
+      this.hasReceivedRequest = this.checkHasReceivedRequest(userId);
     },
     
     // 친구 요청 ID 가져오기
