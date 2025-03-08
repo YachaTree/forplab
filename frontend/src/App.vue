@@ -19,6 +19,12 @@
             <li class="nav-item">
               <router-link to="/teams">팀</router-link>
             </li>
+            <li class="nav-item">
+              <router-link to="/users/search">사용자 검색</router-link>
+            </li>
+            <li class="nav-item">
+              <router-link to="/friends">친구</router-link>
+            </li>
           </ul>
         </nav>
         
@@ -30,6 +36,8 @@
               </button>
               <div v-if="showUserMenu" class="user-dropdown">
                 <router-link to="/profile" class="dropdown-item">프로필</router-link>
+                <router-link to="/users/search" class="dropdown-item">사용자 검색</router-link>
+                <router-link to="/friends" class="dropdown-item">친구 관리</router-link>
                 <a href="#" class="dropdown-item" @click.prevent="handleLogout">로그아웃</a>
               </div>
             </div>
@@ -61,6 +69,8 @@
                 <li><router-link to="/matches">매치</router-link></li>
                 <li><router-link to="/venues">구장</router-link></li>
                 <li><router-link to="/teams">팀</router-link></li>
+                <li><router-link to="/users/search">사용자 검색</router-link></li>
+                <li><router-link to="/friends">친구</router-link></li>
               </ul>
             </div>
             
@@ -366,7 +376,21 @@ ul {
   }
   
   .nav-list {
-    justify-content: center;
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding: 10px 0;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none; /* Firefox */
+  }
+  
+  .nav-list::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Edge */
+  }
+  
+  .nav-item {
+    flex: 0 0 auto;
+    white-space: nowrap;
   }
   
   .auth-buttons {
@@ -380,6 +404,26 @@ ul {
   .footer-links {
     flex-direction: column;
     gap: 20px;
+  }
+  
+  .user-dropdown {
+    right: 0;
+    left: auto;
+  }
+}
+
+@media (max-width: 576px) {
+  .header .container {
+    padding: 0 10px;
+  }
+  
+  .logo-text {
+    font-size: 1.2rem;
+  }
+  
+  .nav-item a {
+    padding: 6px 10px;
+    font-size: 14px;
   }
 }
 </style>
