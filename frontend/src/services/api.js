@@ -134,6 +134,8 @@ export const authAPI = {
     return apiClient.get(`/users/${userId}/matches/`);
   },
   updateProfile(profileData) {
+    console.log('프로필 업데이트 요청:', profileData);
+    // multipart/form-data는 axios가 자동으로 설정하므로 Content-Type 헤더를 명시적으로 설정하지 않음
     return apiClient.put('/users/profile/update/', profileData);
   },
 };
