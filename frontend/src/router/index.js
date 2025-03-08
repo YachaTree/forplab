@@ -17,7 +17,6 @@ import TeamManage from '../views/teams/TeamManage.vue'
 
 // 임시 컴포넌트 (나중에 구현 예정)
 const NotFound = { template: '<div>페이지를 찾을 수 없습니다.</div>' };
-const Profile = { template: '<div>프로필 페이지 (개발 중)</div>' };
 
 const routes = [
   {
@@ -39,8 +38,8 @@ const routes = [
   },
   {
     path: '/profile',
-    name: 'Profile',
-    component: Profile,
+    name: 'CurrentUserProfile',
+    component: () => import('../views/users/Profile.vue'),
     meta: { requiresAuth: true },
   },
   {
@@ -98,12 +97,6 @@ const routes = [
   {
     path: '/users/:id',
     name: 'UserProfile',
-    component: () => import('../views/users/Profile.vue'),
-    meta: { requiresAuth: true }
-  },
-  {
-    path: '/profile',
-    name: 'CurrentUserProfile',
     component: () => import('../views/users/Profile.vue'),
     meta: { requiresAuth: true }
   },

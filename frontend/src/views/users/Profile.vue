@@ -273,9 +273,23 @@ export default {
   
   created() {
     console.log('Profile 컴포넌트 생성됨, 경로:', this.$route.path);
-    this.fetchUserProfile();
-    this.loadUserTeams();
-    this.loadUserMatches();
+    console.log('현재 사용자 정보:', this.user);
+    
+    // 사용자 정보가 없는 경우 먼저 프로필 정보를 가져옴
+    if (!this.user) {
+      console.log('사용자 정보가 없음, 프로필 정보 조회 시도');
+      this.fetchProfile().then(() => {
+        console.log('프로필 정보 조회 성공, 사용자:', this.user);
+        this.loadUserTeams();
+        this.loadUserMatches();
+      }).catch(error => {
+        console.error('프로필 정보 조회 실패:', error);
+      });
+    } else {
+      this.fetchUserProfile();
+      this.loadUserTeams();
+      this.loadUserMatches();
+    }
   },
   
   methods: {
@@ -286,6 +300,8 @@ export default {
     
     async fetchUserProfile() {
       console.log('프로필 정보 조회 시작, 경로:', this.$route.path);
+      console.log('현재 사용자 정보 (조회 전):', this.user);
+      
       try {
         // 현재 로그인한 사용자의 프로필 정보 가져오기
         if (this.$route.params.id) {
@@ -302,13 +318,15 @@ export default {
           console.log('현재 로그인한 사용자 프로필 조회');
           // 로그인한 사용자 자신의 프로필 조회
           await this.fetchProfile();
-          console.log('현재 사용자 프로필:', this.user);
+          console.log('현재 사용자 프로필 (fetchProfile 후):', this.user);
           
           // 프로필 수정 폼 초기화
           if (this.user) {
             this.initEditForm();
           }
         }
+        
+        console.log('프로필 정보 조회 완료, 사용자 정보:', this.user);
       } catch (error) {
         console.error('프로필 정보 조회 실패:', error);
       }
