@@ -14,7 +14,7 @@
       <!-- 프로필 헤더 -->
       <div class="profile-header">
         <div class="profile-avatar">
-          <img :src="user.profile_image || '/img/default-avatar.png'" alt="프로필 이미지">
+          <img :src="getProfileImageUrl(user.profile_image)" :key="imageKey" alt="프로필 이미지">
         </div>
         
         <div class="profile-info">
@@ -248,7 +248,8 @@ export default {
         profile_image: null
       },
       userTeams: [],
-      userMatches: []
+      userMatches: [],
+      imageKey: 0 // 이미지 강제 갱신을 위한 키
     };
   },
   
@@ -288,6 +289,8 @@ export default {
         console.log('프로필 정보 조회 성공, 사용자:', this.user);
         this.loadUserTeams();
         this.loadUserMatches();
+        // 프로필 수정 폼 초기화
+        this.initEditForm();
       }).catch(error => {
         console.error('프로필 정보 조회 실패:', error);
       });
@@ -295,6 +298,8 @@ export default {
       this.fetchUserProfile();
       this.loadUserTeams();
       this.loadUserMatches();
+      // 프로필 수정 폼 초기화
+      this.initEditForm();
     }
   },
   
@@ -371,10 +376,27 @@ export default {
         formData.append('bio', this.editForm.bio);
         
         // 이미지가 있는 경우 추가
+        let hasImageUpdate = false;
         if (this.editForm.profile_image) {
-          // 원본 파일을 그대로 사용
-          formData.append('profile_image', this.editForm.profile_image);
-          console.log('이미지 파일 추가:', this.editForm.profile_image.name, this.editForm.profile_image.type);
+          hasImageUpdate = true;
+          // 파일 타입에 따라 확장자 결정
+          let extension = '';
+          const fileType = this.editForm.profile_image.type;
+          
+          if (fileType === 'image/jpeg' || fileType === 'image/jpg') extension = '.jpg';
+          else if (fileType === 'image/png') extension = '.png';
+          else if (fileType === 'image/gif') extension = '.gif';
+          
+          // 파일 이름 생성 (타임스탬프 추가하여 고유성 보장)
+          const timestamp = new Date().getTime();
+          const fileName = `profile_${timestamp}${extension}`;
+          
+          // 새 파일 객체 생성
+          const newFile = new File([this.editForm.profile_image], fileName, { type: fileType });
+          
+          // FormData에 추가
+          formData.append('profile_image', newFile);
+          console.log('이미지 파일 추가:', fileName, fileType);
         }
         
         // FormData 내용 디버깅
@@ -391,7 +413,29 @@ export default {
         alert('프로필이 성공적으로 업데이트되었습니다.');
         
         // 프로필 정보 다시 불러오기
-        await this.fetchUserProfile();
+        await this.fetchProfile();
+        
+        // 이미지 업데이트가 있었다면 이미지 키 증가시켜 강제 갱신
+        if (hasImageUpdate) {
+          console.log('이미지 업데이트 감지, 이미지 키 갱신');
+          this.imageKey++; // 이미지 키 증가
+          
+          // 브라우저 캐시 강제 갱신을 위해 이미지 URL 직접 조작
+          if (this.user && this.user.profile_image) {
+            const timestamp = new Date().getTime();
+            const imageUrl = this.user.profile_image.includes('?') 
+              ? this.user.profile_image.split('?')[0] + `?t=${timestamp}`
+              : this.user.profile_image + `?t=${timestamp}`;
+            
+            // 사용자 객체 복사 후 이미지 URL 업데이트
+            const updatedUser = { ...this.user, profile_image: imageUrl };
+            this.$store.commit('auth/SET_USER', updatedUser);
+            
+            // 이미지 프리로드
+            const img = new Image();
+            img.src = imageUrl;
+          }
+        }
       } catch (error) {
         console.error('프로필 업데이트 실패:', error);
         
@@ -538,6 +582,51 @@ export default {
       };
       
       return statusMap[status] || status;
+    },
+    
+    getProfileImageUrl(imageUrl) {
+      if (!imageUrl) {
+        return '/img/default-avatar.png';
+      }
+      
+      // 이미 타임스탬프가 있는 경우 그대로 반환
+      if (imageUrl.includes('?t=')) {
+        return imageUrl;
+      }
+      
+      // 캐시 방지를 위해 타임스탬프 추가
+      const timestamp = new Date().getTime();
+      return `${imageUrl}?t=${timestamp}`;
+    },
+    
+    // 컴포넌트가 마운트된 후 이미지 로딩 확인
+    mounted() {
+      // 이미지 로딩 완료 후 처리
+      if (this.user && this.user.profile_image) {
+        const img = new Image();
+        img.onload = () => {
+          console.log('프로필 이미지 로딩 완료:', this.user.profile_image);
+        };
+        img.onerror = () => {
+          console.error('프로필 이미지 로딩 실패:', this.user.profile_image);
+        };
+        img.src = this.getProfileImageUrl(this.user.profile_image);
+      }
+    }
+  },
+  
+  watch: {
+    showEditForm(newVal) {
+      if (newVal && this.user) {
+        // 모달이 열릴 때 프로필 수정 폼 초기화
+        this.initEditForm();
+      }
+    },
+    // 사용자 정보가 변경될 때 프로필 수정 폼 초기화
+    user(newVal) {
+      if (newVal) {
+        this.initEditForm();
+      }
     }
   }
 };
