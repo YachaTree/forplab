@@ -53,7 +53,7 @@
 import { mapState, mapGetters, mapActions } from 'vuex';
 
 export default {
-  name: 'Navbar',
+  name: 'MainNavbar',
   
   data() {
     return {
@@ -63,22 +63,26 @@ export default {
   
   computed: {
     ...mapState({
-      user: state => state.user
+      user: state => state.auth.user
     }),
     
-    ...mapGetters(['isAuthenticated'])
+    ...mapGetters({
+      isAuthenticated: 'auth/isAuthenticated'
+    })
   },
   
   mounted() {
     document.addEventListener('click', this.handleClickOutside);
   },
   
-  beforeDestroy() {
+  beforeUnmount() {
     document.removeEventListener('click', this.handleClickOutside);
   },
   
   methods: {
-    ...mapActions(['logout']),
+    ...mapActions({
+      logout: 'auth/logout'
+    }),
     
     toggleUserMenu() {
       this.showUserMenu = !this.showUserMenu;

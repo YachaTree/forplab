@@ -386,10 +386,14 @@ export default {
       request.processing = true;
       
       try {
+        console.log(`가입 신청 수락 시도: 팀=${this.team.id}, 요청=${request.id}, 사용자=${request.user.id}`);
+        
         await this.acceptJoinRequestAction({
           teamId: this.team.id,
           requestId: request.id
         });
+        
+        console.log(`가입 신청 수락 성공: 팀=${this.team.id}, 요청=${request.id}`);
         
         // 팀 정보 다시 불러오기
         await this.fetchTeam();
@@ -398,6 +402,16 @@ export default {
       } catch (error) {
         console.error('가입 신청 수락 실패:', error);
         
+        // 상세 에러 정보 로깅
+        if (error.response) {
+          console.error('에러 응답:', error.response.status, error.response.data);
+          console.error('에러 응답 헤더:', error.response.headers);
+        } else if (error.request) {
+          console.error('요청은 전송되었으나 응답이 없음:', error.request);
+        } else {
+          console.error('요청 설정 중 오류 발생:', error.message);
+        }
+        
         // 이미 처리된 요청인 경우 (400 또는 404 에러)
         if (error.response && (error.response.status === 404 || error.response.status === 400)) {
           let message = '이미 처리된 가입 신청입니다.';
@@ -410,7 +424,11 @@ export default {
         } 
         // 서버 오류인 경우 (500 에러)
         else if (error.response && error.response.status === 500) {
-          alert('서버 오류가 발생했습니다. 팀 정보를 다시 불러옵니다.');
+          let message = '서버 오류가 발생했습니다. 팀 정보를 다시 불러옵니다.';
+          if (error.response.data && error.response.data.detail) {
+            message = error.response.data.detail;
+          }
+          alert(message);
           // 팀 정보 다시 불러오기
           await this.fetchTeam();
         }
@@ -419,9 +437,7 @@ export default {
         }
       } finally {
         // 처리 중 상태 해제
-        if (request) {
-          request.processing = false;
-        }
+        request.processing = false;
       }
     },
     
@@ -430,10 +446,14 @@ export default {
       request.processing = true;
       
       try {
+        console.log(`가입 신청 거절 시도: 팀=${this.team.id}, 요청=${request.id}, 사용자=${request.user.id}`);
+        
         await this.rejectJoinRequestAction({
           teamId: this.team.id,
           requestId: request.id
         });
+        
+        console.log(`가입 신청 거절 성공: 팀=${this.team.id}, 요청=${request.id}`);
         
         // 팀 정보 다시 불러오기
         await this.fetchTeam();
@@ -441,6 +461,16 @@ export default {
         alert(`${request.user.username}님의 가입 신청이 거절되었습니다.`);
       } catch (error) {
         console.error('가입 신청 거절 실패:', error);
+        
+        // 상세 에러 정보 로깅
+        if (error.response) {
+          console.error('에러 응답:', error.response.status, error.response.data);
+          console.error('에러 응답 헤더:', error.response.headers);
+        } else if (error.request) {
+          console.error('요청은 전송되었으나 응답이 없음:', error.request);
+        } else {
+          console.error('요청 설정 중 오류 발생:', error.message);
+        }
         
         // 이미 처리된 요청인 경우 (400 또는 404 에러)
         if (error.response && (error.response.status === 404 || error.response.status === 400)) {
@@ -454,7 +484,11 @@ export default {
         } 
         // 서버 오류인 경우 (500 에러)
         else if (error.response && error.response.status === 500) {
-          alert('서버 오류가 발생했습니다. 팀 정보를 다시 불러옵니다.');
+          let message = '서버 오류가 발생했습니다. 팀 정보를 다시 불러옵니다.';
+          if (error.response.data && error.response.data.detail) {
+            message = error.response.data.detail;
+          }
+          alert(message);
           // 팀 정보 다시 불러오기
           await this.fetchTeam();
         }

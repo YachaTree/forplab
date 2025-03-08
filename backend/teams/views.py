@@ -2,6 +2,7 @@ from django.shortcuts import render
 from rest_framework import generics, permissions
 from .serializers import TeamSerializer, TeamDetailSerializer, TeamCreateSerializer, TeamMemberSerializer, TeamJoinRequestSerializer
 from .models import Team, TeamMember, TeamJoinRequest
+import traceback
 
 
 # 임시 뷰 클래스 (나중에 구현 예정)
@@ -273,6 +274,7 @@ class TeamJoinRequestAcceptView(generics.GenericAPIView):
     def post(self, request, *args, **kwargs):
         from rest_framework.response import Response
         from rest_framework import status
+        import traceback
         
         team_id = self.kwargs.get('team_id')
         request_id = self.kwargs.get('request_id')
@@ -313,18 +315,34 @@ class TeamJoinRequestAcceptView(generics.GenericAPIView):
                 from django.db import transaction
                 with transaction.atomic():
                     # 팀원 생성
-                    team_member = TeamMember.objects.create(
-                        team=team,
-                        user=join_request.user,
-                        role='PLAYER',
-                        position=join_request.position
-                    )
+                    print(f"팀원 생성 시도: 팀={team.id}, 사용자={join_request.user.id}, 포지션={join_request.position}")
                     
-                    # 가입 신청 상태 변경
-                    join_request.status = 'ACCEPTED'
-                    join_request.save()
-                
-                print(f"가입 신청 수락 성공: 팀={team_id}, 요청={request_id}, 사용자={join_request.user.id}, 팀원 ID={team_member.id}")
+                    # 디버깅: 포지션 값 확인
+                    print(f"포지션 값 타입: {type(join_request.position)}, 값: {join_request.position}")
+                    
+                    # 디버깅: TeamMember 모델 필드 확인
+                    from django.db.models.fields import CharField
+                    position_field = TeamMember._meta.get_field('position')
+                    print(f"TeamMember.position 필드 타입: {type(position_field)}, 최대 길이: {position_field.max_length}")
+                    
+                    try:
+                        team_member = TeamMember.objects.create(
+                            team=team,
+                            user=join_request.user,
+                            role='PLAYER',
+                            position=join_request.position
+                        )
+                        
+                        # 가입 신청 상태 변경
+                        join_request.status = 'ACCEPTED'
+                        join_request.save()
+                        
+                        print(f"가입 신청 수락 성공: 팀={team_id}, 요청={request_id}, 사용자={join_request.user.id}, 팀원 ID={team_member.id}")
+                    except Exception as inner_e:
+                        print(f"TeamMember 생성 중 오류 발생: {str(inner_e)}")
+                        print(f"오류 타입: {type(inner_e).__name__}")
+                        print(traceback.format_exc())
+                        raise
                 
                 return Response(
                     {"detail": "가입 신청이 수락되었습니다."},
@@ -332,6 +350,8 @@ class TeamJoinRequestAcceptView(generics.GenericAPIView):
                 )
             except Exception as e:
                 print(f"가입 신청 수락 중 오류 발생: {str(e)}")
+                print(f"오류 타입: {type(e).__name__}")
+                print(traceback.format_exc())  # 상세 오류 스택 트레이스 출력
                 return Response(
                     {"detail": f"가입 신청 수락 중 오류가 발생했습니다: {str(e)}"},
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -348,6 +368,8 @@ class TeamJoinRequestAcceptView(generics.GenericAPIView):
             )
         except Exception as e:
             print(f"가입 신청 수락 중 예상치 못한 오류 발생: {str(e)}")
+            print(f"오류 타입: {type(e).__name__}")
+            print(traceback.format_exc())  # 상세 오류 스택 트레이스 출력
             return Response(
                 {"detail": "서버 오류가 발생했습니다."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR

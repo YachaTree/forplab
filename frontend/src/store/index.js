@@ -73,42 +73,99 @@ const auth = {
     },
     
     async logout({ commit }) {
+      commit('SET_LOADING', true)
       try {
         await authAPI.logout()
         commit('SET_TOKEN', null)
         commit('SET_USER', null)
+        commit('SET_LOADING', false)
       } catch (error) {
         console.error('로그아웃 실패:', error)
-        // 로그아웃 실패해도 토큰과 유저 정보는 삭제
-        commit('SET_TOKEN', null)
-        commit('SET_USER', null)
+        commit('SET_LOADING', false)
         throw error
       }
     },
     
     async fetchProfile({ commit }) {
+      commit('SET_LOADING', true)
+      commit('SET_ERROR', null)
       try {
         const response = await authAPI.getProfile()
         commit('SET_USER', response.data)
+        commit('SET_LOADING', false)
         return response
       } catch (error) {
         console.error('프로필 조회 실패:', error)
+        commit('SET_ERROR', error.message || '프로필 정보를 불러오는데 실패했습니다.')
+        commit('SET_LOADING', false)
         throw error
       }
     },
     
-    // App.vue에서 사용하는 fetchUserProfile 액션 추가
-    fetchUserProfile({ dispatch }) {
-      return dispatch('fetchProfile')
+    async getUserProfile({ commit }, userId) {
+      commit('SET_LOADING', true)
+      commit('SET_ERROR', null)
+      try {
+        console.log('getUserProfile 액션 호출됨, userId:', userId);
+        const response = await authAPI.getUserProfile(userId)
+        console.log('getUserProfile 응답:', response.data);
+        
+        // 사용자 정보를 state에 설정
+        commit('SET_USER', response.data)
+        
+        commit('SET_LOADING', false)
+        return response
+      } catch (error) {
+        console.error('사용자 프로필 조회 실패:', error)
+        commit('SET_ERROR', error.message || '사용자 프로필 정보를 불러오는데 실패했습니다.')
+        commit('SET_LOADING', false)
+        throw error
+      }
     },
     
-    async updateProfile({ commit }, profileData) {
+    async getUserTeams({ commit }, userId) {
+      commit('SET_LOADING', true)
       try {
+        const response = await authAPI.getUserTeams(userId)
+        commit('SET_LOADING', false)
+        return response
+      } catch (error) {
+        console.error('사용자 팀 조회 실패:', error)
+        commit('SET_LOADING', false)
+        throw error
+      }
+    },
+    
+    async getUserMatches({ commit }, userId) {
+      commit('SET_LOADING', true)
+      try {
+        const response = await authAPI.getUserMatches(userId)
+        commit('SET_LOADING', false)
+        return response
+      } catch (error) {
+        console.error('사용자 경기 조회 실패:', error)
+        commit('SET_LOADING', false)
+        throw error
+      }
+    },
+    
+    async updateProfile({ commit, dispatch }, profileData) {
+      commit('SET_LOADING', true)
+      commit('SET_ERROR', null)
+      try {
+        console.log('updateProfile 액션 호출됨, 데이터:', profileData);
         const response = await authAPI.updateProfile(profileData)
-        commit('SET_USER', response.data)
+        console.log('프로필 업데이트 응답:', response.data);
+        
+        // 프로필 업데이트 후 다시 조회
+        await dispatch('fetchProfile')
+        commit('SET_LOADING', false)
         return response
       } catch (error) {
         console.error('프로필 업데이트 실패:', error)
+        console.error('에러 상세:', error.response ? error.response.data : error.message);
+        commit('SET_ERROR', error.message || '프로필 정보 업데이트에 실패했습니다.')
+        commit('SET_LOADING', false)
         throw error
       }
     }

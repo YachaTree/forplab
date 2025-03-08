@@ -1,228 +1,377 @@
 <template>
   <div class="team-detail-container">
     <!-- 로딩 및 에러 메시지 -->
-    <div v-if="loading" class="loading-message">
+    <div v-if="loading" class="loading-container">
+      <div class="loading-spinner"></div>
       <p>팀 정보를 불러오는 중...</p>
     </div>
     
     <div v-if="error" class="error-message">
       <p>{{ error }}</p>
-      <button @click="fetchTeam">다시 시도</button>
+      <button @click="fetchTeam" class="retry-button">다시 시도</button>
     </div>
     
     <div v-if="!loading && !error && team" class="team-content">
       <!-- 상단 헤더 -->
       <div class="team-header">
-        <div class="team-logo">
-          <img :src="team.logo || '/img/default-team.jpg'" alt="Team Logo" />
+        <div class="team-header-content">
+          <div class="team-logo">
+            <img :src="team.logo || '/img/default-team.jpg'" alt="Team Logo" />
+            <div class="team-level-badge" :class="'level-' + team.level">
+              {{ getLevelText(team.level) }}
+            </div>
+          </div>
+          
+          <div class="team-info-header">
+            <h1 class="team-name">{{ team.name }}</h1>
+            
+            <div class="team-meta">
+              <div class="team-region">
+                <i class="fas fa-map-marker-alt"></i>
+                <span>{{ getRegionText(team.region) }}</span>
+              </div>
+              
+              <div class="team-created">
+                <i class="fas fa-calendar-alt"></i>
+                <span>창단일: {{ formatDate(team.created_at) }}</span>
+              </div>
+              
+              <div class="team-recruiting" v-if="team.is_recruiting">
+                <i class="fas fa-user-plus"></i>
+                <span class="recruiting-badge">모집중</span>
+              </div>
+              <div class="team-recruiting" v-else>
+                <i class="fas fa-user-slash"></i>
+                <span class="closed-badge">모집마감</span>
+              </div>
+            </div>
+            
+            <div class="team-stats">
+              <div class="stat-item">
+                <div class="stat-value">{{ team.members_count || 0 }}</div>
+                <div class="stat-label">팀원</div>
+              </div>
+              
+              <div class="stat-item">
+                <div class="stat-value">{{ team.matches_played || 0 }}</div>
+                <div class="stat-label">경기</div>
+              </div>
+              
+              <div class="stat-item">
+                <div class="stat-value">{{ team.wins || 0 }}/{{ team.draws || 0 }}/{{ team.losses || 0 }}</div>
+                <div class="stat-label">승/무/패</div>
+              </div>
+              
+              <div class="stat-item">
+                <div class="stat-value">{{ Math.round(team.win_rate || 0) }}%</div>
+                <div class="stat-label">승률</div>
+              </div>
+            </div>
+          </div>
         </div>
         
-        <div class="team-info-header">
-          <h1 class="team-name">{{ team.name }}</h1>
-          
-          <div class="team-level" :class="'level-' + team.level">
-            {{ getLevelText(team.level) }}
-          </div>
-          
-          <div class="team-region">
-            <i class="fas fa-map-marker-alt"></i>
-            <span>{{ getRegionText(team.region) }}</span>
-          </div>
-          
-          <div class="team-stats">
-            <div class="stat-item">
-              <div class="stat-label">팀원</div>
-              <div class="stat-value">{{ team.member_count }}명</div>
-            </div>
-            
-            <div class="stat-item">
-              <div class="stat-label">경기</div>
-              <div class="stat-value">{{ team.match_count }}경기</div>
-            </div>
-            
-            <div class="stat-item">
-              <div class="stat-label">승/무/패</div>
-              <div class="stat-value">{{ team.win_count }}/{{ team.draw_count }}/{{ team.lose_count }}</div>
-            </div>
-          </div>
-          
-          <!-- 팀 가입 버튼 -->
+        <div class="team-actions-container">
+          <!-- 팀 가입 신청 버튼 (로그인 상태이고, 팀원이 아니고, 팀장이 아니고, 가입 신청 중이 아닌 경우) -->
           <div class="team-actions" v-if="isAuthenticated && !isTeamMember && !isTeamLeader && !hasJoinRequest">
             <button 
               class="join-team-btn" 
               @click="showJoinRequestForm = true"
               :disabled="!team.is_recruiting"
             >
+              <i class="fas fa-user-plus"></i>
               {{ team.is_recruiting ? '팀 가입 신청' : '모집 마감' }}
             </button>
           </div>
           
           <!-- 팀 관리 버튼 (팀장인 경우) -->
           <div class="team-actions" v-if="isTeamLeader">
-            <button class="manage-team-btn" @click="goToTeamManage">팀 관리</button>
+            <button class="manage-team-btn" @click="goToTeamManage">
+              <i class="fas fa-cog"></i>
+              팀 관리
+            </button>
           </div>
           
-          <!-- 팀 탈퇴 버튼 (팀원인 경우) -->
+          <!-- 팀 탈퇴 버튼 (팀원이지만 팀장이 아닌 경우) -->
           <div class="team-actions" v-if="isTeamMember && !isTeamLeader">
-            <button class="leave-team-btn" @click="confirmLeaveTeam">팀 탈퇴</button>
+            <button class="leave-team-btn" @click="confirmLeaveTeam">
+              <i class="fas fa-sign-out-alt"></i>
+              팀 탈퇴
+            </button>
           </div>
           
           <!-- 가입 신청 상태 (신청 중인 경우) -->
-          <div class="team-actions" v-if="!isTeamMember && !isTeamLeader && hasJoinRequest">
+          <div class="team-actions" v-if="hasJoinRequest && !isTeamMember">
             <div class="join-request-status">
               <i class="fas fa-hourglass-half"></i>
               <span>가입 신청 중</span>
             </div>
-            <button class="cancel-request-btn" @click="confirmCancelRequest">신청 취소</button>
-          </div>
-        </div>
-      </div>
-      
-      <!-- 팀 소개 -->
-      <div v-if="team.description" class="team-description-section">
-        <h2 class="section-title">팀 소개</h2>
-        <div class="team-description">
-          <p>{{ team.description }}</p>
-        </div>
-      </div>
-      
-      <!-- 팀 가입 신청 폼 -->
-      <div v-if="showJoinRequestForm" class="join-request-form-section">
-        <h2 class="section-title">팀 가입 신청</h2>
-        <div class="join-request-form">
-          <div class="form-group">
-            <label>자기소개</label>
-            <textarea 
-              v-model="joinRequestForm.message" 
-              placeholder="자기소개와 가입 동기를 작성해주세요."
-              rows="4"
-            ></textarea>
-          </div>
-          
-          <div class="form-group">
-            <label>포지션</label>
-            <select v-model="joinRequestForm.position">
-              <option value="">선택</option>
-              <option value="GK">골키퍼</option>
-              <option value="DF">수비수</option>
-              <option value="MF">미드필더</option>
-              <option value="FW">공격수</option>
-            </select>
-          </div>
-          
-          <div class="form-actions">
-            <button class="cancel-btn" @click="cancelJoinRequest">취소</button>
-            <button 
-              class="submit-btn" 
-              @click="submitJoinRequest"
-              :disabled="joinRequestSubmitting || !joinRequestForm.message || !joinRequestForm.position"
-            >
-              {{ joinRequestSubmitting ? '제출 중...' : '가입 신청' }}
+            <button class="cancel-request-btn" @click="confirmCancelRequest">
+              <i class="fas fa-times"></i>
+              신청 취소
             </button>
           </div>
         </div>
       </div>
       
-      <!-- 팀원 목록 -->
-      <div class="team-members-section">
-        <h2 class="section-title">팀원 목록</h2>
-        
-        <div v-if="team.members && team.members.length > 0" class="members-list">
-          <div v-for="member in team.members" :key="member.id" class="member-card">
-            <div class="member-avatar">
-              <img :src="member.user.profile_image || '/img/default-avatar.png'" alt="User" />
+      <!-- 탭 메뉴 -->
+      <div class="tab-menu">
+        <div 
+          class="tab-item" 
+          :class="{ active: activeTab === 'info' }"
+          @click="activeTab = 'info'"
+        >
+          <i class="fas fa-info-circle"></i>
+          팀 정보
+        </div>
+        <div 
+          class="tab-item" 
+          :class="{ active: activeTab === 'members' }"
+          @click="activeTab = 'members'"
+          v-if="isTeamMember || isTeamLeader"
+        >
+          <i class="fas fa-users"></i>
+          팀원 목록
+        </div>
+        <div 
+          class="tab-item" 
+          :class="{ active: activeTab === 'matches' }"
+          @click="activeTab = 'matches'"
+        >
+          <i class="fas fa-futbol"></i>
+          경기 기록
+        </div>
+        <div 
+          class="tab-item" 
+          :class="{ active: activeTab === 'requests' }"
+          @click="activeTab = 'requests'"
+          v-if="isTeamLeader && team.join_requests && team.join_requests.length > 0"
+        >
+          <i class="fas fa-user-plus"></i>
+          가입 신청
+          <span class="badge">{{ team.join_requests.length }}</span>
+        </div>
+      </div>
+      
+      <!-- 탭 컨텐츠 -->
+      <div class="tab-content">
+        <!-- 팀 정보 탭 -->
+        <div v-if="activeTab === 'info'" class="tab-pane">
+          <div v-if="team.description" class="team-description-section">
+            <h2 class="section-title">팀 소개</h2>
+            <div class="team-description">
+              <p>{{ team.description }}</p>
             </div>
-            
-            <div class="member-info">
-              <div class="member-name">
-                {{ member.username }}
-                <span v-if="member.is_leader" class="leader-badge">팀장</span>
+          </div>
+          
+          <div class="team-details-section">
+            <h2 class="section-title">팀 상세 정보</h2>
+            <div class="team-details">
+              <div class="detail-item">
+                <div class="detail-label">팀 레벨</div>
+                <div class="detail-value">{{ getLevelText(team.level) }}</div>
               </div>
-              
-              <div class="member-position">
-                {{ getPositionText(member.position) }}
+              <div class="detail-item">
+                <div class="detail-label">활동 지역</div>
+                <div class="detail-value">{{ getRegionText(team.region) }}</div>
               </div>
-              
-              <div class="member-join-date">
-                가입일: {{ formatDate(member.joined_at) }}
+              <div class="detail-item">
+                <div class="detail-label">창단일</div>
+                <div class="detail-value">{{ formatDate(team.created_at) }}</div>
+              </div>
+              <div class="detail-item">
+                <div class="detail-label">팀원 수</div>
+                <div class="detail-value">{{ team.members_count || 0 }}명</div>
+              </div>
+              <div class="detail-item">
+                <div class="detail-label">경기 수</div>
+                <div class="detail-value">{{ team.matches_played || 0 }}경기</div>
+              </div>
+              <div class="detail-item">
+                <div class="detail-label">전적</div>
+                <div class="detail-value">{{ team.wins || 0 }}승 {{ team.draws || 0 }}무 {{ team.losses || 0 }}패</div>
+              </div>
+              <div class="detail-item">
+                <div class="detail-label">승률</div>
+                <div class="detail-value">{{ Math.round(team.win_rate || 0) }}%</div>
+              </div>
+              <div class="detail-item">
+                <div class="detail-label">득점</div>
+                <div class="detail-value">{{ team.goals_scored || 0 }}골</div>
+              </div>
+              <div class="detail-item">
+                <div class="detail-label">실점</div>
+                <div class="detail-value">{{ team.goals_conceded || 0 }}골</div>
+              </div>
+              <div class="detail-item">
+                <div class="detail-label">득실차</div>
+                <div class="detail-value">{{ (team.goals_scored || 0) - (team.goals_conceded || 0) }}골</div>
               </div>
             </div>
           </div>
         </div>
         
-        <div v-else class="empty-members">
-          <p>아직 팀원이 없습니다.</p>
-        </div>
-      </div>
-      
-      <!-- 팀 경기 기록 -->
-      <div class="team-matches-section">
-        <h2 class="section-title">최근 경기</h2>
-        
-        <div v-if="team.recent_matches && team.recent_matches.length > 0" class="matches-list">
-          <div v-for="match in team.recent_matches" :key="match.id" class="match-card" @click="goToMatchDetail(match.id)">
-            <div class="match-date">
-              {{ formatDate(match.date) }}
+        <!-- 팀원 목록 탭 -->
+        <div v-if="activeTab === 'members' && (isTeamMember || isTeamLeader)" class="tab-pane">
+          <div class="team-members-section">
+            <h2 class="section-title">팀원 목록</h2>
+            
+            <div v-if="team.members && team.members.length > 0" class="members-list">
+              <div v-for="member in team.members" :key="member.id" class="member-card">
+                <div class="member-avatar">
+                  <img :src="member.user.profile_image || '/img/default-avatar.png'" alt="User" />
+                </div>
+                
+                <div class="member-info">
+                  <div class="member-name">
+                    {{ member.user.username }}
+                    <span v-if="member.role === 'CAPTAIN'" class="leader-badge">팀장</span>
+                    <span v-else-if="member.role === 'MANAGER'" class="manager-badge">매니저</span>
+                  </div>
+                  
+                  <div class="member-position" v-if="member.position">
+                    {{ getPositionText(member.position) }}
+                  </div>
+                  
+                  <div class="member-join-date">
+                    가입일: {{ formatDate(member.joined_at) }}
+                  </div>
+                </div>
+              </div>
             </div>
             
-            <div class="match-teams">
-              <div class="home-team" :class="{ 'current-team': match.home_team.id === team.id }">
-                {{ match.home_team.name }}
-              </div>
-              
-              <div class="match-score">
-                {{ match.home_score }} - {{ match.away_score }}
-              </div>
-              
-              <div class="away-team" :class="{ 'current-team': match.away_team.id === team.id }">
-                {{ match.away_team.name }}
-              </div>
-            </div>
-            
-            <div class="match-venue">
-              <i class="fas fa-map-marker-alt"></i>
-              <span>{{ match.venue.name }}</span>
+            <div v-else class="empty-members">
+              <i class="fas fa-users"></i>
+              <p>아직 팀원이 없습니다.</p>
             </div>
           </div>
         </div>
         
-        <div v-else class="empty-matches">
-          <p>아직 경기 기록이 없습니다.</p>
+        <!-- 경기 기록 탭 -->
+        <div v-if="activeTab === 'matches'" class="tab-pane">
+          <div class="team-matches-section">
+            <h2 class="section-title">경기 기록</h2>
+            
+            <div v-if="team.recent_matches && team.recent_matches.length > 0" class="matches-list">
+              <div v-for="match in team.recent_matches" :key="match.id" class="match-card" @click="goToMatchDetail(match.id)">
+                <div class="match-date">
+                  {{ formatDate(match.date) }}
+                </div>
+                
+                <div class="match-teams">
+                  <div class="home-team" :class="{ 'current-team': match.home_team.id === team.id }">
+                    {{ match.home_team.name }}
+                  </div>
+                  
+                  <div class="match-score">
+                    {{ match.home_score }} - {{ match.away_score }}
+                  </div>
+                  
+                  <div class="away-team" :class="{ 'current-team': match.away_team.id === team.id }">
+                    {{ match.away_team.name }}
+                  </div>
+                </div>
+                
+                <div class="match-venue">
+                  <i class="fas fa-map-marker-alt"></i>
+                  <span>{{ match.venue.name }}</span>
+                </div>
+              </div>
+            </div>
+            
+            <div v-else class="empty-matches">
+              <i class="fas fa-futbol"></i>
+              <p>아직 경기 기록이 없습니다.</p>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 가입 신청 목록 탭 -->
+        <div v-if="activeTab === 'requests' && isTeamLeader" class="tab-pane">
+          <div class="join-requests-section">
+            <h2 class="section-title">가입 신청 목록</h2>
+            
+            <div class="join-requests-list">
+              <div v-for="request in team.join_requests" :key="request.id" class="request-card">
+                <div class="request-user">
+                  <div class="user-avatar">
+                    <img :src="request.user.profile_image || '/img/default-avatar.png'" alt="User" />
+                  </div>
+                  
+                  <div class="user-info">
+                    <div class="user-name">{{ request.user.username }}</div>
+                    <div class="request-date">신청일: {{ formatDate(request.created_at) }}</div>
+                  </div>
+                </div>
+                
+                <div class="request-details">
+                  <div class="request-position">
+                    <span class="detail-label">포지션:</span>
+                    <span class="detail-value">{{ getPositionText(request.position) }}</span>
+                  </div>
+                  
+                  <div class="request-message">
+                    <span class="detail-label">자기소개:</span>
+                    <p class="detail-value">{{ request.message }}</p>
+                  </div>
+                </div>
+                
+                <div class="request-actions">
+                  <button class="reject-btn" @click="rejectJoinRequest(request.id)">
+                    <i class="fas fa-times"></i>
+                    거절
+                  </button>
+                  <button class="approve-btn" @click="approveJoinRequest(request.id)">
+                    <i class="fas fa-check"></i>
+                    수락
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
       
-      <!-- 팀 가입 신청 목록 (팀장인 경우) -->
-      <div v-if="isTeamLeader && team.join_requests && team.join_requests.length > 0" class="join-requests-section">
-        <h2 class="section-title">가입 신청 목록</h2>
-        
-        <div class="join-requests-list">
-          <div v-for="request in team.join_requests" :key="request.id" class="request-card">
-            <div class="request-user">
-              <div class="user-avatar">
-                <img :src="request.user.profile_image || '/img/default-avatar.png'" alt="User" />
-              </div>
-              
-              <div class="user-info">
-                <div class="user-name">{{ request.user.username }}</div>
-                <div class="request-date">신청일: {{ formatDate(request.created_at) }}</div>
-              </div>
+      <!-- 팀 가입 신청 폼 -->
+      <div v-if="showJoinRequestForm" class="join-request-form-overlay">
+        <div class="join-request-form-container">
+          <div class="join-request-form-header">
+            <h2>팀 가입 신청</h2>
+            <button class="close-btn" @click="cancelJoinRequest">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+          
+          <div class="join-request-form">
+            <div class="form-group">
+              <label>자기소개</label>
+              <textarea 
+                v-model="joinRequestForm.message" 
+                placeholder="자기소개와 가입 동기를 작성해주세요."
+                rows="4"
+              ></textarea>
             </div>
             
-            <div class="request-details">
-              <div class="request-position">
-                <span class="detail-label">포지션:</span>
-                <span class="detail-value">{{ getPositionText(request.position) }}</span>
-              </div>
-              
-              <div class="request-message">
-                <span class="detail-label">자기소개:</span>
-                <p class="detail-value">{{ request.message }}</p>
-              </div>
+            <div class="form-group">
+              <label>포지션</label>
+              <select v-model="joinRequestForm.position">
+                <option value="">선택</option>
+                <option value="GK">골키퍼</option>
+                <option value="DF">수비수</option>
+                <option value="MF">미드필더</option>
+                <option value="FW">공격수</option>
+              </select>
             </div>
             
-            <div class="request-actions">
-              <button class="reject-btn" @click="rejectJoinRequest(request.id)">거절</button>
-              <button class="approve-btn" @click="approveJoinRequest(request.id)">수락</button>
+            <div class="form-actions">
+              <button class="cancel-btn" @click="cancelJoinRequest">취소</button>
+              <button 
+                class="submit-btn" 
+                @click="submitJoinRequest"
+                :disabled="joinRequestSubmitting || !joinRequestForm.message || !joinRequestForm.position"
+              >
+                <i class="fas fa-paper-plane"></i>
+                {{ joinRequestSubmitting ? '제출 중...' : '가입 신청' }}
+              </button>
             </div>
           </div>
         </div>
@@ -244,7 +393,8 @@ export default {
         message: '',
         position: ''
       },
-      joinRequestSubmitting: false
+      joinRequestSubmitting: false,
+      activeTab: 'info' // 기본 활성 탭
     };
   },
   
@@ -343,6 +493,13 @@ export default {
     isAuthenticated(newValue) {
       if (newValue && !this.user) {
         this.fetchUserProfile();
+      }
+    },
+    
+    isTeamMember(newValue) {
+      // 팀원이 아닌 경우 팀원 목록 탭이 활성화되어 있다면 팀 정보 탭으로 변경
+      if (!newValue && !this.isTeamLeader && this.activeTab === 'members') {
+        this.activeTab = 'info';
       }
     }
   },
@@ -565,52 +722,127 @@ export default {
 
 <style scoped>
 .team-detail-container {
-  max-width: 1000px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 20px;
 }
 
-.loading-message,
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 50px 0;
+  color: #666;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid rgba(0, 0, 0, 0.1);
+  border-radius: 50%;
+  border-top-color: #4caf50;
+  animation: spin 1s ease-in-out infinite;
+  margin-bottom: 15px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 .error-message {
   text-align: center;
   padding: 30px;
-  background-color: #f9f9f9;
+  background-color: #ffebee;
   border-radius: 8px;
   margin: 20px 0;
+  color: #e53935;
+  border: 1px solid #ffcdd2;
 }
 
-.error-message {
-  color: #e74c3c;
+.retry-button {
+  margin-top: 15px;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  background-color: #e53935;
+  color: white;
+  transition: background-color 0.3s;
+}
+
+.retry-button:hover {
+  background-color: #c62828;
 }
 
 .team-content {
-  background-color: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
+  animation: fadeIn 0.5s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .team-header {
   display: flex;
-  padding: 30px;
-  background-color: #f9f9f9;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 30px;
+  padding-bottom: 30px;
   border-bottom: 1px solid #eee;
 }
 
+.team-header-content {
+  display: flex;
+  flex: 1;
+  gap: 20px;
+}
+
 .team-logo {
+  position: relative;
   width: 120px;
   height: 120px;
-  border-radius: 50%;
+  border-radius: 8px;
   overflow: hidden;
-  margin-right: 30px;
-  border: 3px solid white;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 .team-logo img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.team-logo:hover img {
+  transform: scale(1.05);
+}
+
+.team-level-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  padding: 5px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: bold;
+  color: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.level-beginner {
+  background-color: #4caf50;
+}
+
+.level-intermediate {
+  background-color: #2196f3;
+}
+
+.level-advanced {
+  background-color: #f44336;
 }
 
 .team-info-header {
@@ -619,86 +851,96 @@ export default {
 
 .team-name {
   font-size: 28px;
-  margin: 0 0 10px;
+  font-weight: bold;
+  margin: 0 0 15px;
   color: #333;
 }
 
-.team-level {
-  display: inline-block;
-  padding: 5px 10px;
-  border-radius: 20px;
-  font-size: 14px;
-  font-weight: 500;
-  margin-bottom: 15px;
-}
-
-.level-beginner {
-  background-color: #e3f2fd;
-  color: #1976d2;
-}
-
-.level-intermediate {
-  background-color: #fff8e1;
-  color: #ffa000;
-}
-
-.level-advanced {
-  background-color: #fbe9e7;
-  color: #d84315;
-}
-
-.team-region {
+.team-meta {
   display: flex;
-  align-items: center;
-  margin-bottom: 20px;
-  color: #555;
-  font-size: 16px;
-}
-
-.team-region i {
-  margin-right: 8px;
-  color: #777;
-}
-
-.team-stats {
-  display: flex;
+  flex-wrap: wrap;
   gap: 20px;
   margin-bottom: 20px;
 }
 
-.stat-item {
-  text-align: center;
-  background-color: white;
-  padding: 10px 15px;
-  border-radius: 8px;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+.team-region, .team-created, .team-recruiting {
+  display: flex;
+  align-items: center;
+  color: #555;
+  font-size: 14px;
 }
 
-.stat-label {
-  font-size: 14px;
-  color: #666;
-  margin-bottom: 5px;
+.team-region i, .team-created i, .team-recruiting i {
+  margin-right: 8px;
+  color: #777;
+  width: 16px;
+  text-align: center;
+}
+
+.recruiting-badge {
+  background-color: #4caf50;
+  color: white;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.closed-badge {
+  background-color: #9e9e9e;
+  color: white;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.team-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.stat-item {
+  text-align: center;
+  min-width: 80px;
 }
 
 .stat-value {
   font-size: 18px;
-  font-weight: 600;
+  font-weight: bold;
   color: #333;
+  margin-bottom: 5px;
 }
 
-.team-actions {
+.stat-label {
+  font-size: 14px;
+  color: #777;
+}
+
+.team-actions-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
   margin-top: 15px;
 }
 
-.join-team-btn,
-.manage-team-btn,
-.leave-team-btn,
-.cancel-request-btn {
-  padding: 8px 16px;
+.team-actions {
+  display: flex;
+  align-items: center;
+}
+
+.join-team-btn, .manage-team-btn, .leave-team-btn, .cancel-request-btn {
+  padding: 10px 15px;
   border-radius: 4px;
   font-weight: 500;
   cursor: pointer;
   border: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s;
 }
 
 .join-team-btn {
@@ -706,9 +948,8 @@ export default {
   color: white;
 }
 
-.join-team-btn:disabled {
-  background-color: #ccc;
-  cursor: not-allowed;
+.join-team-btn:hover {
+  background-color: #388e3c;
 }
 
 .manage-team-btn {
@@ -716,45 +957,108 @@ export default {
   color: white;
 }
 
+.manage-team-btn:hover {
+  background-color: #1976d2;
+}
+
 .leave-team-btn {
   background-color: #f44336;
   color: white;
 }
 
+.leave-team-btn:hover {
+  background-color: #d32f2f;
+}
+
 .cancel-request-btn {
-  background-color: #f44336;
+  background-color: #ff9800;
   color: white;
-  margin-left: 10px;
+}
+
+.cancel-request-btn:hover {
+  background-color: #f57c00;
 }
 
 .join-request-status {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  background-color: #fff8e1;
-  color: #ffa000;
-  padding: 8px 12px;
-  border-radius: 4px;
-  font-size: 14px;
+  gap: 8px;
   margin-right: 10px;
+  color: #ff9800;
+  font-weight: 500;
 }
 
-.join-request-status i {
-  margin-right: 5px;
+.tab-menu {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 30px;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 10px;
+}
+
+.tab-item {
+  padding: 10px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+  position: relative;
+}
+
+.tab-item i {
+  font-size: 16px;
+}
+
+.tab-item:hover {
+  background-color: #f5f5f5;
+}
+
+.tab-item.active {
+  background-color: #2196f3;
+  color: white;
+}
+
+.badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background-color: #f44336;
+  color: white;
+  font-size: 12px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tab-content {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.tab-pane {
+  width: 100%;
 }
 
 .section-title {
   font-size: 20px;
-  margin: 0 0 15px;
+  margin-bottom: 20px;
   color: #333;
+  border-left: 4px solid #2196f3;
+  padding-left: 10px;
 }
 
-.team-description-section,
-.join-request-form-section,
-.team-members-section,
-.team-matches-section,
-.join-requests-section {
-  padding: 30px;
-  border-bottom: 1px solid #eee;
+.team-description-section, .team-details-section, .team-members-section, .team-matches-section, .join-requests-section {
+  margin-bottom: 30px;
+  background-color: #fff;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .team-description {
@@ -762,80 +1066,53 @@ export default {
   color: #555;
 }
 
-.join-request-form {
-  background-color: #f9f9f9;
-  padding: 20px;
-  border-radius: 8px;
+.team-details {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 15px;
 }
 
-.form-group {
-  margin-bottom: 15px;
-}
-
-.form-group label {
-  display: block;
-  margin-bottom: 5px;
-  font-weight: 500;
-  color: #333;
-}
-
-.form-group textarea,
-.form-group select {
-  width: 100%;
+.detail-item {
   padding: 10px;
-  border: 1px solid #ddd;
   border-radius: 4px;
+  background-color: #f9f9f9;
 }
 
-.form-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  margin-top: 15px;
+.detail-label {
+  font-size: 14px;
+  color: #777;
+  margin-bottom: 5px;
 }
 
-.cancel-btn,
-.submit-btn {
-  padding: 8px 16px;
-  border-radius: 4px;
-  cursor: pointer;
+.detail-value {
+  font-size: 16px;
   font-weight: 500;
-}
-
-.cancel-btn {
-  background-color: #f0f0f0;
-  border: 1px solid #ddd;
   color: #333;
-}
-
-.submit-btn {
-  background-color: #4caf50;
-  border: none;
-  color: white;
-}
-
-.submit-btn:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
 }
 
 .members-list {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 15px;
+  gap: 20px;
 }
 
 .member-card {
   display: flex;
   align-items: center;
-  background-color: #f9f9f9;
   padding: 15px;
   border-radius: 8px;
+  background-color: #f9f9f9;
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.member-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
 }
 
 .member-avatar {
-  width: 50px;
-  height: 50px;
+  width: 60px;
+  height: 60px;
   border-radius: 50%;
   overflow: hidden;
   margin-right: 15px;
@@ -852,35 +1129,34 @@ export default {
 }
 
 .member-name {
+  font-size: 16px;
   font-weight: 500;
-  color: #333;
   margin-bottom: 5px;
   display: flex;
   align-items: center;
 }
 
 .leader-badge {
-  background-color: #ffc107;
-  color: #333;
+  background-color: #f44336;
+  color: white;
   font-size: 12px;
   padding: 2px 6px;
   border-radius: 10px;
   margin-left: 8px;
 }
 
-.member-position,
-.member-join-date {
-  font-size: 14px;
-  color: #666;
+.manager-badge {
+  background-color: #2196f3;
+  color: white;
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 10px;
+  margin-left: 8px;
 }
 
-.empty-members,
-.empty-matches {
-  text-align: center;
-  padding: 20px;
-  color: #666;
-  background-color: #f9f9f9;
-  border-radius: 8px;
+.member-position, .member-join-date {
+  font-size: 14px;
+  color: #777;
 }
 
 .matches-list {
@@ -890,66 +1166,54 @@ export default {
 }
 
 .match-card {
-  background-color: #f9f9f9;
   padding: 15px;
   border-radius: 8px;
+  background-color: #f9f9f9;
   cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: transform 0.3s, box-shadow 0.3s;
 }
 
 .match-card:hover {
-  transform: translateY(-3px);
+  transform: translateY(-5px);
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
 }
 
 .match-date {
   font-size: 14px;
-  color: #666;
+  color: #777;
   margin-bottom: 10px;
 }
 
 .match-teams {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
   margin-bottom: 10px;
 }
 
-.home-team,
-.away-team {
+.home-team, .away-team {
+  font-size: 16px;
   font-weight: 500;
-  color: #333;
   flex: 1;
 }
 
-.home-team {
+.away-team {
   text-align: right;
-  padding-right: 10px;
 }
 
-.away-team {
-  text-align: left;
-  padding-left: 10px;
+.match-score {
+  font-size: 20px;
+  font-weight: bold;
+  padding: 0 15px;
 }
 
 .current-team {
   color: #2196f3;
-  font-weight: 600;
-}
-
-.match-score {
-  font-size: 18px;
-  font-weight: 600;
-  color: #333;
-  padding: 5px 10px;
-  background-color: white;
-  border-radius: 4px;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
 }
 
 .match-venue {
   font-size: 14px;
-  color: #666;
+  color: #777;
   display: flex;
   align-items: center;
 }
@@ -958,22 +1222,39 @@ export default {
   margin-right: 5px;
 }
 
+.empty-members, .empty-matches {
+  text-align: center;
+  padding: 40px 0;
+  color: #999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.empty-members i, .empty-matches i {
+  font-size: 48px;
+  color: #ddd;
+  margin-bottom: 15px;
+}
+
 .join-requests-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.request-card {
+  padding: 20px;
+  border-radius: 8px;
+  background-color: #f9f9f9;
   display: flex;
   flex-direction: column;
   gap: 15px;
 }
 
-.request-card {
-  background-color: #f9f9f9;
-  padding: 15px;
-  border-radius: 8px;
-}
-
 .request-user {
   display: flex;
   align-items: center;
-  margin-bottom: 15px;
 }
 
 .user-avatar {
@@ -995,36 +1276,29 @@ export default {
 }
 
 .user-name {
+  font-size: 16px;
   font-weight: 500;
-  color: #333;
   margin-bottom: 5px;
 }
 
 .request-date {
   font-size: 14px;
-  color: #666;
+  color: #777;
 }
 
 .request-details {
-  margin-bottom: 15px;
+  padding: 15px;
+  border-radius: 8px;
+  background-color: #f0f0f0;
 }
 
-.request-position {
-  margin-bottom: 10px;
-}
-
-.request-message {
+.request-position, .request-message {
   margin-bottom: 10px;
 }
 
 .detail-label {
   font-weight: 500;
-  color: #333;
   margin-right: 5px;
-}
-
-.detail-value {
-  color: #555;
 }
 
 .request-actions {
@@ -1033,13 +1307,16 @@ export default {
   gap: 10px;
 }
 
-.reject-btn,
-.approve-btn {
-  padding: 8px 16px;
+.reject-btn, .approve-btn {
+  padding: 8px 15px;
   border-radius: 4px;
-  cursor: pointer;
   font-weight: 500;
+  cursor: pointer;
   border: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s;
 }
 
 .reject-btn {
@@ -1047,24 +1324,163 @@ export default {
   color: white;
 }
 
+.reject-btn:hover {
+  background-color: #d32f2f;
+}
+
 .approve-btn {
   background-color: #4caf50;
   color: white;
 }
 
+.approve-btn:hover {
+  background-color: #388e3c;
+}
+
+.join-request-form-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.join-request-form-container {
+  background-color: white;
+  padding: 25px;
+  border-radius: 8px;
+  max-width: 500px;
+  width: 100%;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from { transform: translateY(-50px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.join-request-form-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #eee;
+}
+
+.join-request-form-header h2 {
+  font-size: 20px;
+  margin: 0;
+  color: #333;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  color: #777;
+  transition: color 0.3s;
+}
+
+.close-btn:hover {
+  color: #333;
+}
+
+.join-request-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-group label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #555;
+}
+
+.form-group textarea, .form-group select {
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  transition: border-color 0.3s;
+}
+
+.form-group textarea:focus, .form-group select:focus {
+  border-color: #2196f3;
+  outline: none;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.cancel-btn, .submit-btn {
+  padding: 10px 15px;
+  border-radius: 4px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s;
+}
+
+.cancel-btn {
+  background-color: #f5f5f5;
+  color: #333;
+}
+
+.cancel-btn:hover {
+  background-color: #e0e0e0;
+}
+
+.submit-btn {
+  background-color: #4caf50;
+  color: white;
+}
+
+.submit-btn:hover {
+  background-color: #388e3c;
+}
+
+.submit-btn:disabled {
+  background-color: #9e9e9e;
+  cursor: not-allowed;
+}
+
 @media (max-width: 768px) {
-  .team-header {
+  .team-header-content {
     flex-direction: column;
-    align-items: center;
-    text-align: center;
   }
   
   .team-logo {
-    margin-right: 0;
-    margin-bottom: 20px;
+    margin: 0 auto 20px;
   }
   
-  .team-region {
+  .team-info-header {
+    text-align: center;
+  }
+  
+  .team-meta {
     justify-content: center;
   }
   
@@ -1072,19 +1488,26 @@ export default {
     justify-content: center;
   }
   
-  .members-list {
+  .team-actions-container {
+    margin-top: 20px;
+    align-items: center;
+  }
+  
+  .tab-menu {
+    justify-content: center;
+  }
+  
+  .tab-item {
+    flex: 1;
+    justify-content: center;
+  }
+  
+  .team-details {
     grid-template-columns: 1fr;
   }
   
-  .match-teams {
-    flex-direction: column;
-    gap: 10px;
-  }
-  
-  .home-team,
-  .away-team {
-    text-align: center;
-    padding: 0;
+  .members-list {
+    grid-template-columns: 1fr;
   }
 }
 </style> 

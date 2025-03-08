@@ -72,6 +72,70 @@ class UserDetailView(generics.RetrieveAPIView):
     permission_classes = [permissions.IsAuthenticated]
     lookup_field = 'username'
 
+class UserDetailByIdView(generics.RetrieveAPIView):
+    """
+    사용자 ID로 프로필 조회 뷰
+    """
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+class UserTeamsView(generics.ListAPIView):
+    """
+    사용자가 속한 팀 목록 조회 뷰
+    """
+    serializer_class = UserSerializer  # 실제로는 TeamSerializer를 사용해야 함
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_queryset(self):
+        from teams.models import Team, TeamMember
+        from teams.serializers import TeamSerializer
+        
+        user_id = self.kwargs.get('pk')
+        try:
+            user = User.objects.get(id=user_id)
+            # 사용자가 속한 팀 목록 조회
+            team_members = TeamMember.objects.filter(user=user)
+            teams = [tm.team for tm in team_members]
+            return teams
+        except User.DoesNotExist:
+            return []
+    
+    def list(self, request, *args, **kwargs):
+        from teams.serializers import TeamSerializer
+        
+        queryset = self.get_queryset()
+        serializer = TeamSerializer(queryset, many=True, context={'request': request})
+        return Response(serializer.data)
+
+class UserMatchesView(generics.ListAPIView):
+    """
+    사용자가 참여한 경기 목록 조회 뷰
+    """
+    serializer_class = UserSerializer  # 실제로는 MatchSerializer를 사용해야 함
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_queryset(self):
+        from matches.models import Match, MatchParticipant
+        from matches.serializers import MatchSerializer
+        
+        user_id = self.kwargs.get('pk')
+        try:
+            user = User.objects.get(id=user_id)
+            # 사용자가 참여한 경기 목록 조회
+            match_participants = MatchParticipant.objects.filter(user=user)
+            matches = [mp.match for mp in match_participants]
+            return matches
+        except User.DoesNotExist:
+            return []
+    
+    def list(self, request, *args, **kwargs):
+        from matches.serializers import MatchSerializer
+        
+        queryset = self.get_queryset()
+        serializer = MatchSerializer(queryset, many=True, context={'request': request})
+        return Response(serializer.data)
+
 class PasswordChangeView(APIView):
     """
     비밀번호 변경 뷰

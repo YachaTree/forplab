@@ -115,8 +115,42 @@ export const authAPI = {
   getProfile() {
     return apiClient.get('/users/profile/');
   },
+  getUserProfile(userId) {
+    console.log('API 호출: getUserProfile, userId:', userId);
+    return apiClient.get(`/users/${userId}/`)
+      .then(response => {
+        console.log('getUserProfile 응답:', response.data);
+        return response;
+      })
+      .catch(error => {
+        console.error('getUserProfile 에러:', error.response ? error.response.data : error.message);
+        throw error;
+      });
+  },
+  getUserTeams(userId) {
+    return apiClient.get(`/users/${userId}/teams/`);
+  },
+  getUserMatches(userId) {
+    return apiClient.get(`/users/${userId}/matches/`);
+  },
   updateProfile(profileData) {
-    return apiClient.put('/users/profile/update/', profileData);
+    console.log('프로필 업데이트 요청:', profileData);
+    
+    // FormData 내용 디버깅
+    if (profileData instanceof FormData) {
+      console.log('FormData 내용 (API 서비스):');
+      for (let [key, value] of profileData.entries()) {
+        console.log(`${key}: ${value instanceof File ? `${value.name} (${value.type}, ${value.size} bytes)` : value}`);
+      }
+    }
+    
+    // multipart/form-data는 axios가 자동으로 설정하므로 Content-Type 헤더를 명시적으로 설정하지 않음
+    // 하지만 일부 브라우저에서는 명시적으로 설정해야 할 수 있음
+    const headers = {
+      'Content-Type': 'multipart/form-data'
+    };
+    
+    return apiClient.put('/users/profile/update/', profileData, { headers });
   },
 };
 
