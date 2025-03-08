@@ -37,3 +37,27 @@ class User(AbstractUser):
         if self.matches_played == 0:
             return 0
         return (self.wins / self.matches_played) * 100
+
+class Friendship(models.Model):
+    """
+    사용자 간의 친구 관계를 저장하는 모델
+    """
+    STATUS_CHOICES = [
+        ('PENDING', '대기중'),
+        ('ACCEPTED', '수락됨'),
+        ('REJECTED', '거절됨'),
+    ]
+    
+    from_user = models.ForeignKey(User, related_name='friendships_sent', on_delete=models.CASCADE, verbose_name=_('요청자'))
+    to_user = models.ForeignKey(User, related_name='friendships_received', on_delete=models.CASCADE, verbose_name=_('수신자'))
+    status = models.CharField(_('상태'), max_length=10, choices=STATUS_CHOICES, default='PENDING')
+    created_at = models.DateTimeField(_('생성일'), auto_now_add=True)
+    updated_at = models.DateTimeField(_('수정일'), auto_now=True)
+    
+    class Meta:
+        verbose_name = _('친구 관계')
+        verbose_name_plural = _('친구 관계들')
+        unique_together = ('from_user', 'to_user')
+    
+    def __str__(self):
+        return f"{self.from_user.username} -> {self.to_user.username} ({self.get_status_display()})"

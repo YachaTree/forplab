@@ -8,13 +8,14 @@ const Register = () => import('@/views/Register.vue');
 const MatchList = () => import('@/views/matches/MatchList.vue');
 const MatchDetail = () => import('@/views/matches/MatchDetail.vue');
 const MatchCreate = () => import('@/views/matches/MatchCreate.vue');
-const UserSearch = () => import('@/views/users/search/UserSearch.vue');
 import VenueList from '../views/venues/VenueList.vue'
 import VenueDetail from '../views/venues/VenueDetail.vue'
 import TeamList from '../views/teams/TeamList.vue'
 import TeamDetail from '../views/teams/TeamDetail.vue'
 import TeamCreate from '../views/teams/TeamCreate.vue'
 import TeamManage from '../views/teams/TeamManage.vue'
+import UserSearch from '@/views/users/UserSearch.vue'
+import Friends from '@/views/users/Friends.vue'
 
 // 임시 컴포넌트 (나중에 구현 예정)
 const NotFound = { template: '<div>페이지를 찾을 수 없습니다.</div>' };
@@ -40,18 +41,6 @@ const routes = [
   {
     path: '/profile',
     name: 'CurrentUserProfile',
-    component: () => import('../views/users/Profile.vue'),
-    meta: { requiresAuth: true },
-  },
-  {
-    path: '/users/search',
-    name: 'UserSearch',
-    component: UserSearch,
-    meta: { requiresAuth: true },
-  },
-  {
-    path: '/users/:id',
-    name: 'UserProfile',
     component: () => import('../views/users/Profile.vue'),
     meta: { requiresAuth: true },
   },
@@ -105,6 +94,24 @@ const routes = [
     name: 'TeamManage',
     component: TeamManage,
     props: true,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/users/:id',
+    name: 'UserProfile',
+    component: () => import('../views/users/Profile.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/users/search',
+    name: 'UserSearch',
+    component: UserSearch,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/friends',
+    name: 'Friends',
+    component: Friends,
     meta: { requiresAuth: true }
   },
   {

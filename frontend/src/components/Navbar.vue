@@ -18,6 +18,9 @@
         <router-link to="/users/search" class="nav-link">
           <i class="fas fa-search"></i> 사용자 검색
         </router-link>
+        <router-link to="/friends" class="nav-link">
+          <i class="fas fa-user-friends"></i> 친구
+        </router-link>
       </div>
       
       <div class="navbar-actions">
@@ -43,6 +46,9 @@
               </router-link>
               <router-link to="/users/search" class="dropdown-item">
                 <i class="fas fa-search"></i> 사용자 검색
+              </router-link>
+              <router-link to="/friends" class="dropdown-item">
+                <i class="fas fa-user-friends"></i> 친구 관리
               </router-link>
               <div class="dropdown-divider"></div>
               <a href="#" class="dropdown-item" @click.prevent="logout">

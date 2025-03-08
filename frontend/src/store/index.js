@@ -1,4 +1,5 @@
 import { createStore } from 'vuex'
+import * as api from '@/services/api'
 import { authAPI, matchAPI, venueAPI, teamAPI } from '@/services/api'
 
 // Auth 모듈
@@ -185,22 +186,20 @@ const auth = {
       }
     },
     
-    async searchUsers({ commit }, params) {
-      commit('SET_SEARCH_LOADING', true)
-      commit('SET_SEARCH_ERROR', null)
+    async searchUsers({ commit }, query) {
+      commit('SET_SEARCH_LOADING', true);
+      commit('SET_SEARCH_ERROR', null);
+      
       try {
-        console.log('searchUsers 액션 호출됨, 파라미터:', params);
-        const response = await authAPI.searchUsers(params)
-        console.log('사용자 검색 응답:', response.data);
-        
-        commit('SET_SEARCH_RESULTS', response.data)
-        commit('SET_SEARCH_LOADING', false)
-        return response
+        const response = await authAPI.searchUsers(query);
+        commit('SET_SEARCH_RESULTS', response.data);
+        return response;
       } catch (error) {
-        console.error('사용자 검색 실패:', error)
-        commit('SET_SEARCH_ERROR', error.message || '사용자 검색에 실패했습니다.')
-        commit('SET_SEARCH_LOADING', false)
-        throw error
+        console.error('사용자 검색 실패:', error);
+        commit('SET_SEARCH_ERROR', '사용자 검색 중 오류가 발생했습니다.');
+        throw error;
+      } finally {
+        commit('SET_SEARCH_LOADING', false);
       }
     }
   }
@@ -544,13 +543,175 @@ const venues = {
   }
 }
 
+// 친구 관리 모듈
+export const friends = {
+  namespaced: true,
+  state: {
+    friends: [],
+    friendRequests: [],
+    sentRequests: [],
+    loading: false,
+    error: null
+  },
+  mutations: {
+    SET_FRIENDS(state, friends) {
+      state.friends = friends;
+    },
+    SET_FRIEND_REQUESTS(state, requests) {
+      state.friendRequests = requests;
+    },
+    SET_SENT_REQUESTS(state, requests) {
+      state.sentRequests = requests;
+    },
+    SET_LOADING(state, isLoading) {
+      state.loading = isLoading;
+    },
+    SET_ERROR(state, error) {
+      state.error = error;
+    }
+  },
+  actions: {
+    // 친구 목록 조회
+    async fetchFriends({ commit }) {
+      commit('SET_LOADING', true);
+      commit('SET_ERROR', null);
+      
+      try {
+        const response = await api.getFriends();
+        commit('SET_FRIENDS', response.data);
+        return response;
+      } catch (error) {
+        console.error('친구 목록 조회 실패:', error);
+        commit('SET_ERROR', '친구 목록을 불러오는데 실패했습니다.');
+        throw error;
+      } finally {
+        commit('SET_LOADING', false);
+      }
+    },
+    
+    // 받은 친구 요청 조회
+    async fetchFriendRequests({ commit }) {
+      commit('SET_LOADING', true);
+      commit('SET_ERROR', null);
+      
+      try {
+        const response = await api.getFriendRequests();
+        commit('SET_FRIEND_REQUESTS', response.data);
+        return response;
+      } catch (error) {
+        console.error('친구 요청 조회 실패:', error);
+        commit('SET_ERROR', '친구 요청을 불러오는데 실패했습니다.');
+        throw error;
+      } finally {
+        commit('SET_LOADING', false);
+      }
+    },
+    
+    // 보낸 친구 요청 조회
+    async fetchSentRequests({ commit }) {
+      commit('SET_LOADING', true);
+      commit('SET_ERROR', null);
+      
+      try {
+        const response = await api.getSentFriendRequests();
+        commit('SET_SENT_REQUESTS', response.data);
+        return response;
+      } catch (error) {
+        console.error('보낸 친구 요청 조회 실패:', error);
+        commit('SET_ERROR', '보낸 친구 요청을 불러오는데 실패했습니다.');
+        throw error;
+      } finally {
+        commit('SET_LOADING', false);
+      }
+    },
+    
+    // 친구 요청 보내기
+    async sendFriendRequest({ commit, dispatch }, userId) {
+      commit('SET_LOADING', true);
+      commit('SET_ERROR', null);
+      
+      try {
+        const response = await api.sendFriendRequest(userId);
+        // 보낸 요청 목록 갱신
+        dispatch('fetchSentRequests');
+        return response;
+      } catch (error) {
+        console.error('친구 요청 보내기 실패:', error);
+        commit('SET_ERROR', '친구 요청을 보내는데 실패했습니다.');
+        throw error;
+      } finally {
+        commit('SET_LOADING', false);
+      }
+    },
+    
+    // 친구 요청 수락
+    async acceptFriendRequest({ commit, dispatch }, requestId) {
+      commit('SET_LOADING', true);
+      commit('SET_ERROR', null);
+      
+      try {
+        const response = await api.acceptFriendRequest(requestId);
+        // 친구 목록과 요청 목록 갱신
+        dispatch('fetchFriends');
+        dispatch('fetchFriendRequests');
+        return response;
+      } catch (error) {
+        console.error('친구 요청 수락 실패:', error);
+        commit('SET_ERROR', '친구 요청을 수락하는데 실패했습니다.');
+        throw error;
+      } finally {
+        commit('SET_LOADING', false);
+      }
+    },
+    
+    // 친구 요청 거절
+    async rejectFriendRequest({ commit, dispatch }, requestId) {
+      commit('SET_LOADING', true);
+      commit('SET_ERROR', null);
+      
+      try {
+        const response = await api.rejectFriendRequest(requestId);
+        // 요청 목록 갱신
+        dispatch('fetchFriendRequests');
+        return response;
+      } catch (error) {
+        console.error('친구 요청 거절 실패:', error);
+        commit('SET_ERROR', '친구 요청을 거절하는데 실패했습니다.');
+        throw error;
+      } finally {
+        commit('SET_LOADING', false);
+      }
+    },
+    
+    // 친구 삭제
+    async deleteFriendship({ commit, dispatch }, friendshipId) {
+      commit('SET_LOADING', true);
+      commit('SET_ERROR', null);
+      
+      try {
+        const response = await api.deleteFriendship(friendshipId);
+        // 친구 목록 갱신
+        dispatch('fetchFriends');
+        return response;
+      } catch (error) {
+        console.error('친구 삭제 실패:', error);
+        commit('SET_ERROR', '친구를 삭제하는데 실패했습니다.');
+        throw error;
+      } finally {
+        commit('SET_LOADING', false);
+      }
+    }
+  }
+};
+
 // 루트 스토어 생성
 const store = createStore({
   modules: {
     auth,
     teams,
     matches,
-    venues
+    venues,
+    friends // 친구 모듈 추가
   },
   // 루트 레벨 getters (모듈 네임스페이스 없이 접근 가능)
   getters: {

@@ -55,6 +55,60 @@
               프로필 수정
             </button>
           </div>
+          
+          <!-- 친구 관련 버튼 (다른 사용자의 프로필을 볼 때) -->
+          <div class="user-actions" v-else>
+            <!-- 친구 요청 버튼 -->
+            <button 
+              v-if="!isFriend && !hasSentRequest && !hasReceivedRequest" 
+              @click="sendFriendRequest" 
+              class="friend-request-btn"
+              :disabled="requestLoading"
+            >
+              <i class="fas fa-user-plus"></i>
+              친구 요청 보내기
+            </button>
+            
+            <!-- 요청 전송됨 상태 -->
+            <button 
+              v-else-if="hasSentRequest" 
+              class="request-sent-btn"
+              disabled
+            >
+              <i class="fas fa-clock"></i>
+              요청 전송됨
+            </button>
+            
+            <!-- 요청 수락 버튼 -->
+            <div v-else-if="hasReceivedRequest" class="friend-request-actions">
+              <button 
+                @click="acceptFriendRequest" 
+                class="accept-request-btn"
+                :disabled="requestLoading"
+              >
+                <i class="fas fa-check"></i>
+                요청 수락
+              </button>
+              <button 
+                @click="rejectFriendRequest" 
+                class="reject-request-btn"
+                :disabled="requestLoading"
+              >
+                <i class="fas fa-times"></i>
+                요청 거절
+              </button>
+            </div>
+            
+            <!-- 이미 친구인 경우 -->
+            <button 
+              v-else-if="isFriend" 
+              @click="confirmDeleteFriend" 
+              class="remove-friend-btn"
+            >
+              <i class="fas fa-user-minus"></i>
+              친구 삭제
+            </button>
+          </div>
         </div>
       </div>
       
@@ -255,7 +309,11 @@ export default {
       },
       userTeams: [],
       userMatches: [],
-      imageKey: 0 // 이미지 강제 갱신을 위한 키
+      imageKey: 0, // 이미지 강제 갱신을 위한 키
+      isFriend: false,
+      hasSentRequest: false,
+      hasReceivedRequest: false,
+      requestLoading: false
     };
   },
   
@@ -263,17 +321,15 @@ export default {
     ...mapState({
       user: state => state.auth.user,
       loading: state => state.auth.loading,
-      error: state => state.auth.error
+      error: state => state.auth.error,
+      currentUser: state => state.auth.user,
+      friends: state => state.friends.friends,
+      friendRequests: state => state.friends.friendRequests,
+      sentRequests: state => state.friends.sentRequests
     }),
     
     isCurrentUser() {
-      // /profile 경로인 경우 항상 현재 사용자로 간주
-      if (this.$route.path === '/profile') {
-        return true;
-      }
-      
-      // 사용자 ID로 비교
-      return this.user && this.user.id === parseInt(this.$route.params.id);
+      return this.currentUser && this.user && this.currentUser.id === this.user.id;
     },
     
     winRate() {
@@ -318,7 +374,15 @@ export default {
   methods: {
     ...mapActions({
       fetchProfile: 'auth/fetchProfile',
-      updateProfile: 'auth/updateProfile'
+      updateProfile: 'auth/updateProfile',
+      fetchUserProfileAction: 'auth/fetchUserProfile',
+      fetchFriends: 'friends/fetchFriends',
+      fetchFriendRequests: 'friends/fetchFriendRequests',
+      fetchSentRequests: 'friends/fetchSentRequests',
+      sendFriendRequestAction: 'friends/sendFriendRequest',
+      acceptFriendRequestAction: 'friends/acceptFriendRequest',
+      rejectFriendRequestAction: 'friends/rejectFriendRequest',
+      deleteFriendshipAction: 'friends/deleteFriendship'
     }),
     
     async fetchUserProfile() {
@@ -350,6 +414,16 @@ export default {
         }
         
         console.log('프로필 정보 조회 완료, 사용자 정보:', this.user);
+        
+        // 친구 관련 데이터 로드
+        if (!this.isCurrentUser) {
+          await Promise.all([
+            this.fetchFriends(),
+            this.fetchFriendRequests(),
+            this.fetchSentRequests()
+          ]);
+          this.checkFriendshipStatus();
+        }
       } catch (error) {
         console.error('프로필 정보 조회 실패:', error);
       }
@@ -747,7 +821,143 @@ export default {
       this.$router.push({
         query: { ...this.$route.query, tab }
       });
-    }
+    },
+    
+    // 친구 상태 확인 메소드
+    checkFriendshipStatus() {
+      if (!this.user || !this.currentUser || this.isCurrentUser) return;
+      
+      // 이미 친구인지 확인
+      this.isFriend = this.friends.some(friendship => 
+        (friendship.from_user.id === this.user.id || friendship.to_user.id === this.user.id) && 
+        friendship.status === 'ACCEPTED'
+      );
+      
+      // 친구 요청을 보냈는지 확인
+      this.hasSentRequest = this.sentRequests.some(request => 
+        request.to_user.id === this.user.id && 
+        request.status === 'PENDING'
+      );
+      
+      // 친구 요청을 받았는지 확인
+      this.hasReceivedRequest = this.friendRequests.some(request => 
+        request.from_user.id === this.user.id && 
+        request.status === 'PENDING'
+      );
+    },
+    
+    // 친구 요청 ID 가져오기
+    getFriendRequestId() {
+      if (this.hasReceivedRequest) {
+        const request = this.friendRequests.find(req => 
+          req.from_user.id === this.user.id && 
+          req.status === 'PENDING'
+        );
+        return request ? request.id : null;
+      }
+      return null;
+    },
+    
+    // 친구 관계 ID 가져오기
+    getFriendshipId() {
+      if (this.isFriend) {
+        const friendship = this.friends.find(f => 
+          f.from_user.id === this.user.id || 
+          f.to_user.id === this.user.id
+        );
+        return friendship ? friendship.id : null;
+      }
+      return null;
+    },
+    
+    // 친구 요청 보내기
+    async sendFriendRequest() {
+      if (!this.user || this.requestLoading) return;
+      
+      this.requestLoading = true;
+      
+      try {
+        await this.sendFriendRequestAction(this.user.id);
+        this.$toast.success('친구 요청을 보냈습니다.');
+        await this.fetchSentRequests();
+        this.checkFriendshipStatus();
+      } catch (error) {
+        console.error('친구 요청 전송 실패:', error);
+        this.$toast.error('친구 요청 전송에 실패했습니다.');
+      } finally {
+        this.requestLoading = false;
+      }
+    },
+    
+    // 친구 요청 수락
+    async acceptFriendRequest() {
+      const requestId = this.getFriendRequestId();
+      if (!requestId || this.requestLoading) return;
+      
+      this.requestLoading = true;
+      
+      try {
+        await this.acceptFriendRequestAction(requestId);
+        this.$toast.success('친구 요청을 수락했습니다.');
+        await Promise.all([
+          this.fetchFriends(),
+          this.fetchFriendRequests()
+        ]);
+        this.checkFriendshipStatus();
+      } catch (error) {
+        console.error('친구 요청 수락 실패:', error);
+        this.$toast.error('친구 요청 수락에 실패했습니다.');
+      } finally {
+        this.requestLoading = false;
+      }
+    },
+    
+    // 친구 요청 거절
+    async rejectFriendRequest() {
+      const requestId = this.getFriendRequestId();
+      if (!requestId || this.requestLoading) return;
+      
+      this.requestLoading = true;
+      
+      try {
+        await this.rejectFriendRequestAction(requestId);
+        this.$toast.success('친구 요청을 거절했습니다.');
+        await this.fetchFriendRequests();
+        this.checkFriendshipStatus();
+      } catch (error) {
+        console.error('친구 요청 거절 실패:', error);
+        this.$toast.error('친구 요청 거절에 실패했습니다.');
+      } finally {
+        this.requestLoading = false;
+      }
+    },
+    
+    // 친구 삭제 확인
+    confirmDeleteFriend() {
+      if (confirm('정말로 이 친구를 삭제하시겠습니까?')) {
+        this.deleteFriend();
+      }
+    },
+    
+    // 친구 삭제
+    async deleteFriend() {
+      const friendshipId = this.getFriendshipId();
+      if (!friendshipId) return;
+      
+      this.requestLoading = true;
+      
+      try {
+        await this.deleteFriendshipAction(friendshipId);
+        this.$toast.success('친구가 삭제되었습니다.');
+        await this.fetchFriends();
+        this.checkFriendshipStatus();
+      } catch (error) {
+        console.error('친구 삭제 실패:', error);
+        this.$toast.error('친구 삭제에 실패했습니다.');
+      } finally {
+        this.requestLoading = false;
+      }
+    },
   },
   
   watch: {
@@ -762,6 +972,16 @@ export default {
       if (newVal) {
         this.initEditForm();
       }
+    },
+    // 친구 상태 변경 감지
+    friends() {
+      this.checkFriendshipStatus();
+    },
+    friendRequests() {
+      this.checkFriendshipStatus();
+    },
+    sentRequests() {
+      this.checkFriendshipStatus();
     }
   }
 };
@@ -1609,5 +1829,71 @@ export default {
   .tab-item i {
     font-size: 16px;
   }
+}
+
+/* 친구 관련 버튼 스타일 */
+.friend-request-btn,
+.request-sent-btn,
+.accept-request-btn,
+.reject-request-btn,
+.remove-friend-btn {
+  padding: 8px 15px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.3s;
+  border: none;
+}
+
+.friend-request-btn {
+  background-color: #4a90e2;
+  color: white;
+}
+
+.friend-request-btn:hover {
+  background-color: #3a7bc8;
+}
+
+.request-sent-btn {
+  background-color: #e0e0e0;
+  color: #666;
+  cursor: not-allowed;
+}
+
+.friend-request-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.accept-request-btn {
+  background-color: #2ecc71;
+  color: white;
+}
+
+.accept-request-btn:hover {
+  background-color: #27ae60;
+}
+
+.reject-request-btn {
+  background-color: #e74c3c;
+  color: white;
+}
+
+.reject-request-btn:hover {
+  background-color: #c0392b;
+}
+
+.remove-friend-btn {
+  background-color: #f5f5f5;
+  color: #e74c3c;
+  border: 1px solid #e74c3c;
+}
+
+.remove-friend-btn:hover {
+  background-color: #ffebee;
 }
 </style> 

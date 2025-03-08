@@ -8,8 +8,11 @@ from .serializers import (
     UserSerializer, 
     UserRegistrationSerializer, 
     UserProfileUpdateSerializer,
-    PasswordChangeSerializer
+    PasswordChangeSerializer,
+    FriendshipSerializer,
+    FriendshipCreateSerializer
 )
+from .models import Friendship
 
 User = get_user_model()
 
@@ -155,30 +158,127 @@ class PasswordChangeView(APIView):
 class UserSearchView(generics.ListAPIView):
     """
     사용자 검색 API
-    
-    username, email, skill_level 등으로 사용자를 검색할 수 있습니다.
-    ?search=검색어 형태로 요청하면 username과 email에서 검색합니다.
-    ?skill_level=BEG 형태로 요청하면 특정 실력 수준의 사용자만 검색합니다.
     """
     serializer_class = UserSerializer
     permission_classes = [permissions.IsAuthenticated]
-    filter_backends = [filters.SearchFilter]
-    search_fields = ['username', 'email']
     
     def get_queryset(self):
-        queryset = User.objects.all()
+        query = self.request.query_params.get('query', '')
+        if not query:
+            return User.objects.none()
         
-        # 실력 수준으로 필터링
-        skill_level = self.request.query_params.get('skill_level', None)
-        if skill_level:
-            queryset = queryset.filter(skill_level=skill_level)
+        # 사용자 이름으로 검색
+        queryset = User.objects.filter(username__icontains=query)
         
-        # 추가 검색 조건
-        search = self.request.query_params.get('search', None)
-        if search:
-            queryset = queryset.filter(
-                Q(username__icontains=search) | 
-                Q(email__icontains=search)
-            )
+        # 현재 사용자는 검색 결과에서 제외
+        current_user = self.request.user
+        queryset = queryset.exclude(id=current_user.id)
         
-        return queryset
+        return queryset[:20]  # 최대 20명까지 반환
+
+# 친구 관련 뷰
+class FriendshipListView(generics.ListAPIView):
+    """
+    사용자의 친구 목록 조회 뷰
+    """
+    serializer_class = FriendshipSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_queryset(self):
+        user = self.request.user
+        
+        # 수락된 친구 관계만 조회
+        return Friendship.objects.filter(
+            (Q(from_user=user) | Q(to_user=user)) & Q(status='ACCEPTED')
+        )
+
+class FriendRequestListView(generics.ListAPIView):
+    """
+    사용자에게 온 친구 요청 목록 조회 뷰
+    """
+    serializer_class = FriendshipSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_queryset(self):
+        user = self.request.user
+        
+        # 대기 중인 친구 요청만 조회
+        return Friendship.objects.filter(to_user=user, status='PENDING')
+
+class FriendRequestSentListView(generics.ListAPIView):
+    """
+    사용자가 보낸 친구 요청 목록 조회 뷰
+    """
+    serializer_class = FriendshipSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_queryset(self):
+        user = self.request.user
+        
+        # 대기 중인 친구 요청만 조회
+        return Friendship.objects.filter(from_user=user, status='PENDING')
+
+class FriendRequestCreateView(generics.CreateAPIView):
+    """
+    친구 요청 보내기 뷰
+    """
+    serializer_class = FriendshipCreateSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def perform_create(self, serializer):
+        serializer.save()
+        
+        # 알림 생성 (나중에 구현)
+        # to_user에게 친구 요청 알림 보내기
+
+class FriendRequestAcceptView(generics.UpdateAPIView):
+    """
+    친구 요청 수락 뷰
+    """
+    serializer_class = FriendshipSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_queryset(self):
+        return Friendship.objects.filter(to_user=self.request.user, status='PENDING')
+    
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        instance.status = 'ACCEPTED'
+        instance.save()
+        
+        # 알림 생성 (나중에 구현)
+        # from_user에게 친구 요청 수락 알림 보내기
+        
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
+
+class FriendRequestRejectView(generics.UpdateAPIView):
+    """
+    친구 요청 거절 뷰
+    """
+    serializer_class = FriendshipSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_queryset(self):
+        return Friendship.objects.filter(to_user=self.request.user, status='PENDING')
+    
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        instance.status = 'REJECTED'
+        instance.save()
+        
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
+
+class FriendshipDeleteView(generics.DestroyAPIView):
+    """
+    친구 관계 삭제 뷰
+    """
+    serializer_class = FriendshipSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_queryset(self):
+        user = self.request.user
+        return Friendship.objects.filter(
+            (Q(from_user=user) | Q(to_user=user)) & Q(status='ACCEPTED')
+        )

@@ -353,4 +353,33 @@ export const teamAPI = {
   },
 };
 
+// 친구 관련 API
+export const getFriends = async () => {
+  return await apiClient.get('/users/friends/');
+};
+
+export const getFriendRequests = async () => {
+  return await apiClient.get('/users/friends/requests/');
+};
+
+export const getSentFriendRequests = async () => {
+  return await apiClient.get('/users/friends/requests/sent/');
+};
+
+export const sendFriendRequest = async (toUserId) => {
+  return await apiClient.post('/users/friends/requests/create/', { to_user_id: toUserId });
+};
+
+export const acceptFriendRequest = async (requestId) => {
+  return await apiClient.put(`/users/friends/requests/${requestId}/accept/`);
+};
+
+export const rejectFriendRequest = async (requestId) => {
+  return await apiClient.put(`/users/friends/requests/${requestId}/reject/`);
+};
+
+export const deleteFriendship = async (friendshipId) => {
+  return await apiClient.delete(`/users/friends/${friendshipId}/delete/`);
+};
+
 export default apiClient; 
