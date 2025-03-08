@@ -295,6 +295,16 @@ export default {
     overflow-x: auto;
     white-space: nowrap;
     z-index: 999;
+    gap: 10px;
+  }
+  
+  .nav-link {
+    padding: 8px 10px;
+    font-size: 14px;
+  }
+  
+  .nav-link i {
+    margin-right: 4px;
   }
   
   .create-match-btn span {
@@ -303,6 +313,18 @@ export default {
   
   .user-name {
     display: none;
+  }
+}
+
+@media (max-width: 576px) {
+  .navbar-links {
+    justify-content: flex-start;
+    padding: 10px 5px;
+  }
+  
+  .nav-link {
+    padding: 6px 8px;
+    font-size: 12px;
   }
 }
 </style> 
