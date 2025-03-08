@@ -278,11 +278,15 @@ export default {
     }),
     
     async fetchUserProfile() {
+      console.log('프로필 정보 조회 시작');
       try {
         // 현재 로그인한 사용자의 프로필 정보 가져오기
         if (this.$route.params.id) {
+          console.log('특정 사용자 프로필 조회:', this.$route.params.id);
           // 특정 사용자의 프로필 조회
-          await this.$store.dispatch('auth/getUserProfile', this.$route.params.id);
+          const response = await this.$store.dispatch('auth/getUserProfile', this.$route.params.id);
+          console.log('사용자 프로필 응답:', response);
+          
           // 프로필 수정 폼 초기화 (자신의 프로필인 경우에만)
           if (this.isCurrentUser && this.user) {
             this.editForm = {
@@ -296,8 +300,10 @@ export default {
             };
           }
         } else {
+          console.log('현재 로그인한 사용자 프로필 조회');
           // 로그인한 사용자 자신의 프로필 조회
           await this.fetchProfile();
+          console.log('현재 사용자 프로필:', this.user);
           
           // 프로필 수정 폼 초기화
           if (this.user) {
@@ -360,13 +366,18 @@ export default {
     },
     
     async loadUserTeams() {
+      console.log('팀 정보 조회 시작');
       try {
         // 사용자가 속한 팀 목록 가져오기
         if (this.$route.params.id) {
+          console.log('특정 사용자의 팀 목록 조회:', this.$route.params.id);
           const response = await this.$store.dispatch('auth/getUserTeams', this.$route.params.id);
+          console.log('팀 목록 응답:', response);
           this.userTeams = response.data || [];
         } else if (this.user) {
+          console.log('현재 로그인한 사용자의 팀 목록 조회:', this.user.id);
           const response = await this.$store.dispatch('auth/getUserTeams', this.user.id);
+          console.log('팀 목록 응답:', response);
           this.userTeams = response.data || [];
         }
       } catch (error) {
@@ -375,13 +386,18 @@ export default {
     },
     
     async loadUserMatches() {
+      console.log('경기 정보 조회 시작');
       try {
         // 사용자가 참여한 경기 목록 가져오기
         if (this.$route.params.id) {
+          console.log('특정 사용자의 경기 목록 조회:', this.$route.params.id);
           const response = await this.$store.dispatch('auth/getUserMatches', this.$route.params.id);
+          console.log('경기 목록 응답:', response);
           this.userMatches = response.data || [];
         } else if (this.user) {
+          console.log('현재 로그인한 사용자의 경기 목록 조회:', this.user.id);
           const response = await this.$store.dispatch('auth/getUserMatches', this.user.id);
+          console.log('경기 목록 응답:', response);
           this.userMatches = response.data || [];
         }
       } catch (error) {
