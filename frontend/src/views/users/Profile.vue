@@ -63,7 +63,7 @@
         <div 
           class="tab-item" 
           :class="{ active: activeTab === 'info' }"
-          @click="activeTab = 'info'"
+          @click="changeTab('info')"
         >
           <i class="fas fa-info-circle"></i>
           기본 정보
@@ -71,7 +71,7 @@
         <div 
           class="tab-item" 
           :class="{ active: activeTab === 'teams' }"
-          @click="activeTab = 'teams'"
+          @click="changeTab('teams')"
         >
           <i class="fas fa-users"></i>
           소속 팀
@@ -79,7 +79,7 @@
         <div 
           class="tab-item" 
           :class="{ active: activeTab === 'matches' }"
-          @click="activeTab = 'matches'"
+          @click="changeTab('matches')"
         >
           <i class="fas fa-futbol"></i>
           참여 경기
@@ -128,12 +128,15 @@
           <div v-if="!loading && userTeams.length > 0" class="teams-grid">
             <div v-for="team in userTeams" :key="team.id" class="team-card" @click="goToTeamDetail(team.id)">
               <div class="team-logo">
-                <img :src="team.logo || '/img/default-team.png'" alt="팀 로고">
+                <img :src="getTeamLogoUrl(team.logo)" alt="팀 로고">
               </div>
               <div class="team-info">
                 <h3 class="team-name">{{ team.name }}</h3>
                 <p class="team-level">{{ team.level_display }}</p>
                 <p class="team-region">{{ team.region_display }}</p>
+              </div>
+              <div class="view-details">
+                자세히 보기
               </div>
             </div>
           </div>
@@ -284,6 +287,12 @@ export default {
   created() {
     console.log('Profile 컴포넌트 생성됨, 경로:', this.$route.path);
     console.log('현재 사용자 정보:', this.user);
+    
+    // URL에서 탭 정보 읽어오기
+    const tab = this.$route.query.tab;
+    if (tab && ['info', 'teams', 'matches'].includes(tab)) {
+      this.activeTab = tab;
+    }
     
     // 사용자 정보가 없는 경우 먼저 프로필 정보를 가져옴
     if (!this.user) {
@@ -688,6 +697,33 @@ export default {
       return `${imageUrl}?t=${timestamp}`;
     },
     
+    getTeamLogoUrl(logoUrl) {
+      if (!logoUrl) {
+        return '/img/default-team.png';
+      }
+      
+      // 상대 경로인 경우 절대 경로로 변환
+      if (!logoUrl.startsWith('http') && !logoUrl.startsWith('/')) {
+        // 이미 /media로 시작하는 경우
+        if (logoUrl.startsWith('/media')) {
+          logoUrl = `http://localhost:8000${logoUrl}`;
+        } else {
+          logoUrl = `http://localhost:8000/media/${logoUrl}`;
+        }
+      }
+      
+      console.log('팀 로고 URL:', logoUrl);
+      
+      // 이미 타임스탬프가 있는 경우 그대로 반환
+      if (logoUrl.includes('?t=')) {
+        return logoUrl;
+      }
+      
+      // 캐시 방지를 위해 타임스탬프 추가
+      const timestamp = new Date().getTime();
+      return `${logoUrl}?t=${timestamp}`;
+    },
+    
     // 컴포넌트가 마운트된 후 이미지 로딩 확인
     mounted() {
       // 이미지 로딩 완료 후 처리
@@ -701,6 +737,16 @@ export default {
         };
         img.src = this.getProfileImageUrl(this.user.profile_image);
       }
+    },
+    
+    // 탭 변경 메서드
+    changeTab(tab) {
+      this.activeTab = tab;
+      
+      // URL 업데이트
+      this.$router.push({
+        query: { ...this.$route.query, tab }
+      });
     }
   },
   
@@ -799,7 +845,7 @@ export default {
 /* 프로필 헤더 */
 .profile-header {
   display: flex;
-  padding: 30px;
+  padding: 40px;
   background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
   color: var(--white);
   position: relative;
@@ -814,19 +860,20 @@ export default {
   left: 0;
   right: 0;
   bottom: 0;
-  background: url('/img/pattern.png');
-  opacity: 0.1;
+  background: linear-gradient(45deg, rgba(255, 255, 255, 0.1) 25%, transparent 25%, transparent 50%, rgba(255, 255, 255, 0.1) 50%, rgba(255, 255, 255, 0.1) 75%, transparent 75%, transparent);
+  background-size: 10px 10px;
+  opacity: 0.2;
   z-index: 0;
 }
 
 .profile-avatar {
-  width: 120px;
-  height: 120px;
+  width: 140px;
+  height: 140px;
   border-radius: 50%;
   overflow: hidden;
-  border: 4px solid rgba(255, 255, 255, 0.3);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-  margin-right: 30px;
+  border: 5px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+  margin-right: 40px;
   flex-shrink: 0;
   transition: transform 0.3s;
   position: relative;
@@ -850,140 +897,401 @@ export default {
 }
 
 .username {
-  font-size: 28px;
+  font-size: 32px;
   font-weight: 700;
-  margin-bottom: 5px;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  margin-bottom: 8px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .user-email {
-  font-size: 16px;
+  font-size: 18px;
   opacity: 0.9;
-  margin-bottom: 20px;
+  margin-bottom: 25px;
 }
 
 .user-stats {
   display: flex;
   flex-wrap: wrap;
-  gap: 20px;
-  margin-bottom: 20px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
-  padding: 15px;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  gap: 25px;
+  margin-bottom: 25px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 15px;
+  padding: 20px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
 }
 
 .stat-item {
   text-align: center;
-  min-width: 60px;
+  min-width: 70px;
   position: relative;
 }
 
 .stat-item:not(:last-child)::after {
   content: '';
   position: absolute;
-  right: -10px;
+  right: -12px;
   top: 50%;
   transform: translateY(-50%);
   height: 70%;
   width: 1px;
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.3);
 }
 
 .stat-value {
-  font-size: 24px;
+  font-size: 28px;
   font-weight: 700;
   display: block;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .stat-label {
-  font-size: 14px;
+  font-size: 16px;
   opacity: 0.9;
+  margin-top: 5px;
 }
 
 .user-level {
   display: inline-block;
-  background-color: rgba(255, 255, 255, 0.2);
-  padding: 6px 12px;
-  border-radius: 20px;
-  font-size: 14px;
-  margin-top: 10px;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  background-color: rgba(255, 255, 255, 0.25);
+  padding: 8px 16px;
+  border-radius: 25px;
+  font-size: 16px;
+  margin-top: 15px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  font-weight: 500;
 }
 
 .user-actions {
   position: absolute;
-  top: 30px;
-  right: 30px;
+  top: 40px;
+  right: 40px;
   z-index: 1;
 }
 
 .edit-profile-btn {
-  background-color: rgba(255, 255, 255, 0.2);
+  background-color: rgba(255, 255, 255, 0.25);
   color: var(--white);
   border: none;
-  padding: 8px 16px;
-  border-radius: 20px;
-  font-size: 14px;
+  padding: 10px 20px;
+  border-radius: 25px;
+  font-size: 16px;
   display: flex;
   align-items: center;
   transition: all 0.3s;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  font-weight: 500;
 }
 
 .edit-profile-btn:hover {
-  background-color: rgba(255, 255, 255, 0.3);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  background-color: rgba(255, 255, 255, 0.4);
+  transform: translateY(-3px);
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3);
 }
 
 .edit-profile-btn i {
-  margin-right: 6px;
+  margin-right: 8px;
+  font-size: 18px;
 }
 
 /* 탭 메뉴 */
 .tab-menu {
   display: flex;
-  border-bottom: 1px solid var(--border-color);
-  background-color: #f9f9f9;
+  border-bottom: 1px solid #e2e8f0;
+  background-color: #fff;
   position: sticky;
   top: 70px; /* 네비게이션 바 높이에 맞춤 */
   z-index: 10;
+  margin-bottom: 0;
+  padding: 0;
+  width: 100%;
 }
 
 .tab-item {
-  padding: 15px 20px;
+  padding: 15px 0;
   font-size: 16px;
   font-weight: 500;
   cursor: pointer;
   position: relative;
-  transition: color 0.3s;
+  transition: all 0.3s;
   display: flex;
   align-items: center;
+  justify-content: center;
+  color: #4a5568;
+  border: none;
+  background: none;
+  flex: 1;
+  text-align: center;
 }
 
 .tab-item i {
   margin-right: 8px;
-  font-size: 18px;
+  font-size: 16px;
 }
 
 .tab-item:hover {
-  color: var(--primary-color);
+  color: #4299e1;
 }
 
 .tab-item.active {
-  color: var(--primary-color);
+  color: white;
+  background-color: #4299e1;
+  font-weight: 600;
 }
 
 .tab-item.active::after {
-  content: '';
-  position: absolute;
-  bottom: -1px;
-  left: 0;
+  display: none;
+}
+
+/* 탭 컨텐츠 */
+.tab-content {
+  padding: 40px;
+  min-height: 300px;
+  animation: fadeIn 0.5s ease-out;
+  background-color: #fff;
+}
+
+/* 기본 정보 탭 */
+.info-section {
+  max-width: 700px;
+}
+
+.info-section h3 {
+  font-size: 24px;
+  margin-bottom: 25px;
+  color: #333;
+  border-bottom: 2px solid #e0e0e0;
+  padding-bottom: 15px;
+  font-weight: 700;
+}
+
+.info-row {
+  display: flex;
+  margin-bottom: 20px;
+  padding: 15px;
+  border-bottom: 1px solid #e0e0e0;
+  transition: all 0.3s;
+  border-radius: 8px;
+}
+
+.info-label {
+  width: 140px;
+  font-weight: 600;
+  color: #555;
+  flex-shrink: 0;
+}
+
+.info-value {
+  flex-grow: 1;
+  color: #333;
+}
+
+.bio-text {
+  white-space: pre-line;
+  line-height: 1.7;
+}
+
+/* 프로필 수정 폼 */
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #333;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
   width: 100%;
-  height: 3px;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 16px;
+  transition: all 0.3s;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px var(--primary-light);
+  outline: none;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 15px;
+  margin-top: 30px;
+}
+
+.cancel-btn {
+  padding: 12px 24px;
+  background-color: #f5f5f5;
+  color: #333;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.cancel-btn:hover {
+  background-color: #e0e0e0;
+}
+
+.save-btn {
+  padding: 12px 24px;
   background-color: var(--primary-color);
-  animation: slideIn 0.3s ease-out;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.save-btn:hover:not(:disabled) {
+  background-color: var(--primary-dark);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.save-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* 이미지 업로드 */
+.image-upload-container {
+  margin-top: 10px;
+}
+
+.image-upload-container .upload-label {
+  display: inline-block;
+  padding: 12px 20px;
+  background-color: var(--primary-color);
+  color: white;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-weight: 600;
+}
+
+.image-upload-container .upload-label:hover {
+  background-color: var(--primary-dark);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.image-hint {
+  margin-top: 8px;
+  color: #666;
+  font-size: 14px;
+}
+
+.selected-image {
+  margin-top: 15px;
+  padding: 12px;
+  background-color: var(--primary-light);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+}
+
+.selected-image p {
+  margin: 0;
+  color: #333;
+}
+
+/* 반응형 디자인 */
+@media (max-width: 768px) {
+  .profile-header {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 30px 20px;
+  }
+  
+  .profile-avatar {
+    margin-right: 0;
+    margin-bottom: 25px;
+  }
+  
+  .user-stats {
+    justify-content: center;
+  }
+  
+  .user-actions {
+    position: static;
+    margin-top: 25px;
+    display: flex;
+    justify-content: center;
+  }
+  
+  .tab-menu {
+    overflow-x: auto;
+  }
+  
+  .tab-content {
+    padding: 25px 15px;
+  }
+  
+  .info-row {
+    flex-direction: column;
+  }
+  
+  .info-label {
+    width: 100%;
+    margin-bottom: 8px;
+  }
+  
+  .form-actions {
+    flex-direction: column-reverse;
+  }
+  
+  .cancel-btn, .save-btn {
+    width: 100%;
+  }
+}
+
+/* 프로필 수정 모달 */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s;
+  backdrop-filter: blur(5px);
+}
+
+.modal-content {
+  background-color: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  width: 90%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 30px;
+  animation: scaleIn 0.3s;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+@keyframes scaleIn {
+  from { transform: scale(0.9); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
 }
 
 @keyframes slideIn {
@@ -991,134 +1299,65 @@ export default {
   to { transform: scaleX(1); }
 }
 
-/* 탭 컨텐츠 */
-.tab-content {
-  padding: 30px;
-  min-height: 300px;
-  animation: fadeIn 0.5s ease-out;
-}
-
-/* 기본 정보 탭 */
-.info-section {
-  max-width: 600px;
-}
-
-.info-section h3 {
-  font-size: 20px;
+.modal-content h2 {
+  font-size: 24px;
   margin-bottom: 20px;
-  color: var(--text-color);
-  border-bottom: 1px solid var(--border-color);
-  padding-bottom: 10px;
-  display: flex;
-  align-items: center;
-}
-
-.info-section h3::before {
-  content: '\f05a';
-  font-family: 'Font Awesome 5 Free';
-  font-weight: 900;
-  margin-right: 10px;
-  color: var(--primary-color);
-}
-
-.info-row {
-  display: flex;
-  margin-bottom: 15px;
+  color: #333;
+  border-bottom: 2px solid #e0e0e0;
   padding-bottom: 15px;
-  border-bottom: 1px solid var(--border-color);
-  transition: background-color 0.3s;
+  font-weight: 700;
+  text-align: center;
 }
 
-.info-row:hover {
-  background-color: var(--primary-light);
-  border-radius: var(--border-radius);
-  padding-left: 10px;
-}
-
-.info-label {
-  width: 120px;
-  font-weight: 500;
-  color: var(--text-light);
-  flex-shrink: 0;
-}
-
-.info-value {
-  flex-grow: 1;
-}
-
-.bio-text {
-  white-space: pre-line;
-  line-height: 1.6;
+.edit-profile-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 }
 
 /* 소속 팀 탭 */
 .teams-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 20px;
+  gap: 25px;
+  margin-top: 20px;
 }
 
 .team-card {
-  background-color: var(--white);
-  border-radius: var(--border-radius);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  background-color: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   overflow: hidden;
   cursor: pointer;
   transition: transform 0.3s, box-shadow 0.3s;
   position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  border: 1px solid #eee;
 }
 
 .team-card:hover {
   transform: translateY(-5px);
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
-}
-
-.team-card::after {
-  content: '\f105';
-  font-family: 'Font Awesome 5 Free';
-  font-weight: 900;
-  position: absolute;
-  right: 15px;
-  bottom: 15px;
-  color: var(--primary-color);
-  font-size: 20px;
-  opacity: 0;
-  transition: opacity 0.3s, transform 0.3s;
-}
-
-.team-card:hover::after {
-  opacity: 1;
-  transform: translateX(5px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+  border-color: var(--primary-light);
 }
 
 .team-logo {
-  height: 140px;
+  height: 180px;
   overflow: hidden;
-  background-color: #f5f5f5;
+  background-color: #f8f8f8;
   position: relative;
-}
-
-.team-logo::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(to bottom, transparent 70%, rgba(0, 0, 0, 0.5));
-  z-index: 1;
-  opacity: 0;
-  transition: opacity 0.3s;
-}
-
-.team-card:hover .team-logo::before {
-  opacity: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-bottom: 1px solid #eee;
 }
 
 .team-logo img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+  max-width: 90%;
+  max-height: 90%;
+  object-fit: contain;
   transition: transform 0.3s;
 }
 
@@ -1127,20 +1366,25 @@ export default {
 }
 
 .team-info {
-  padding: 15px;
+  padding: 20px;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  background-color: #fff;
 }
 
 .team-name {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 700;
-  margin-bottom: 5px;
-  color: var(--text-color);
+  margin-bottom: 12px;
+  color: #333;
+  line-height: 1.3;
 }
 
 .team-level, .team-region {
-  font-size: 14px;
-  color: var(--text-light);
-  margin-bottom: 5px;
+  font-size: 15px;
+  color: #666;
+  margin-bottom: 10px;
   display: flex;
   align-items: center;
 }
@@ -1149,8 +1393,8 @@ export default {
   content: '\f005';
   font-family: 'Font Awesome 5 Free';
   font-weight: 900;
-  margin-right: 5px;
-  font-size: 12px;
+  margin-right: 10px;
+  font-size: 14px;
   color: #ffc107;
 }
 
@@ -1158,9 +1402,25 @@ export default {
   content: '\f3c5';
   font-family: 'Font Awesome 5 Free';
   font-weight: 900;
-  margin-right: 5px;
-  font-size: 12px;
+  margin-right: 10px;
+  font-size: 14px;
   color: #e91e63;
+}
+
+.team-card .view-details {
+  margin-top: auto;
+  padding: 12px 0;
+  text-align: center;
+  background-color: var(--primary-light);
+  color: var(--primary-color);
+  font-weight: 600;
+  transition: all 0.3s;
+  font-size: 15px;
+}
+
+.team-card:hover .view-details {
+  background-color: var(--primary-color);
+  color: white;
 }
 
 /* 참여 경기 탭 */
@@ -1174,8 +1434,8 @@ export default {
   display: flex;
   align-items: center;
   padding: 15px;
-  background-color: var(--white);
-  border-radius: var(--border-radius);
+  background-color: #ffffff;
+  border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   cursor: pointer;
   transition: transform 0.3s, box-shadow 0.3s;
@@ -1207,7 +1467,7 @@ export default {
 .match-date {
   width: 120px;
   font-size: 14px;
-  color: var(--text-light);
+  color: #666;
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -1230,7 +1490,7 @@ export default {
 .match-venue {
   width: 150px;
   font-size: 14px;
-  color: var(--text-light);
+  color: #666;
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -1278,10 +1538,10 @@ export default {
 .empty-message {
   text-align: center;
   padding: 40px 0;
-  color: var(--text-lighter);
-  background-color: var(--white);
-  border-radius: var(--border-radius);
-  box-shadow: var(--shadow);
+  color: #999;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .empty-message::before {
@@ -1291,280 +1551,10 @@ export default {
   font-size: 48px;
   display: block;
   margin-bottom: 20px;
-  color: var(--text-lighter);
+  color: #999;
 }
 
-/* 프로필 수정 모달 */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  animation: fadeIn 0.3s;
-  backdrop-filter: blur(3px);
-}
-
-.modal-content {
-  background-color: var(--white);
-  border-radius: var(--border-radius);
-  box-shadow: var(--shadow);
-  width: 90%;
-  max-width: 600px;
-  max-height: 90vh;
-  overflow-y: auto;
-  padding: 30px;
-  animation: scaleIn 0.3s;
-}
-
-@keyframes scaleIn {
-  from { transform: scale(0.9); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
-}
-
-.modal-content h2 {
-  font-size: 24px;
-  margin-bottom: 20px;
-  color: var(--text-color);
-  border-bottom: 1px solid var(--border-color);
-  padding-bottom: 10px;
-  display: flex;
-  align-items: center;
-}
-
-.modal-content h2::before {
-  content: '\f4ff';
-  font-family: 'Font Awesome 5 Free';
-  font-weight: 900;
-  margin-right: 10px;
-  color: var(--primary-color);
-}
-
-.edit-profile-form {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-}
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-}
-
-.form-group label {
-  font-size: 14px;
-  font-weight: 500;
-  margin-bottom: 5px;
-  color: var(--text-light);
-  display: flex;
-  align-items: center;
-}
-
-.form-group label::before {
-  font-family: 'Font Awesome 5 Free';
-  font-weight: 900;
-  margin-right: 5px;
-  font-size: 14px;
-  color: var(--primary-color);
-}
-
-.form-group:nth-child(1) label::before { content: '\f007'; } /* 사용자명 */
-.form-group:nth-child(2) label::before { content: '\f0e0'; } /* 이메일 */
-.form-group:nth-child(3) label::before { content: '\f095'; } /* 연락처 */
-.form-group:nth-child(4) label::before { content: '\f073'; } /* 생년월일 */
-.form-group:nth-child(5) label::before { content: '\f005'; } /* 실력 수준 */
-.form-group:nth-child(6) label::before { content: '\f075'; } /* 자기소개 */
-.form-group:nth-child(7) label::before { content: '\f03e'; } /* 프로필 이미지 */
-
-.form-group input,
-.form-group select,
-.form-group textarea {
-  padding: 10px;
-  border: 1px solid var(--border-color);
-  border-radius: var(--border-radius);
-  font-size: 16px;
-  transition: border-color 0.3s, box-shadow 0.3s;
-}
-
-.form-group input:focus,
-.form-group select:focus,
-.form-group textarea:focus {
-  border-color: var(--primary-color);
-  outline: none;
-  box-shadow: 0 0 0 3px var(--primary-light);
-}
-
-.readonly-input {
-  background-color: #f5f5f5;
-  cursor: not-allowed;
-}
-
-.image-upload-container {
-  margin-top: 5px;
-}
-
-.image-upload-container input[type="file"] {
-  display: none;
-}
-
-.image-upload-container .upload-label {
-  display: inline-block;
-  padding: 10px 15px;
-  background-color: var(--primary-color);
-  color: white;
-  border-radius: var(--border-radius);
-  cursor: pointer;
-  transition: background-color 0.3s;
-  text-align: center;
-  margin-bottom: 10px;
-}
-
-.image-upload-container .upload-label:hover {
-  background-color: var(--primary-dark);
-}
-
-.image-upload-container .upload-label i {
-  margin-right: 8px;
-}
-
-.image-hint {
-  font-size: 12px;
-  color: var(--text-lighter);
-  margin-top: 5px;
-}
-
-.selected-image {
-  margin-top: 10px;
-  padding: 10px;
-  background-color: var(--primary-light);
-  border-radius: var(--border-radius);
-  display: flex;
-  align-items: center;
-}
-
-.selected-image::before {
-  content: '\f00c';
-  font-family: 'Font Awesome 5 Free';
-  font-weight: 900;
-  margin-right: 8px;
-  color: var(--primary-color);
-}
-
-.form-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  margin-top: 20px;
-}
-
-.cancel-btn {
-  padding: 10px 20px;
-  background-color: #f5f5f5;
-  color: var(--text-color);
-  border: none;
-  border-radius: var(--border-radius);
-  font-size: 16px;
-  transition: background-color 0.3s;
-  display: flex;
-  align-items: center;
-}
-
-.cancel-btn::before {
-  content: '\f00d';
-  font-family: 'Font Awesome 5 Free';
-  font-weight: 900;
-  margin-right: 8px;
-}
-
-.cancel-btn:hover {
-  background-color: #e0e0e0;
-}
-
-.save-btn {
-  padding: 10px 20px;
-  background-color: var(--primary-color);
-  color: white;
-  border: none;
-  border-radius: var(--border-radius);
-  font-size: 16px;
-  transition: background-color 0.3s, transform 0.3s;
-  display: flex;
-  align-items: center;
-}
-
-.save-btn::before {
-  content: '\f0c7';
-  font-family: 'Font Awesome 5 Free';
-  font-weight: 900;
-  margin-right: 8px;
-}
-
-.save-btn:hover:not(:disabled) {
-  background-color: var(--primary-dark);
-  transform: translateY(-2px);
-}
-
-.save-btn:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-}
-
-/* 반응형 디자인 */
 @media (max-width: 768px) {
-  .profile-header {
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    padding: 20px;
-  }
-  
-  .profile-avatar {
-    margin-right: 0;
-    margin-bottom: 20px;
-  }
-  
-  .user-stats {
-    justify-content: center;
-    flex-wrap: wrap;
-  }
-  
-  .stat-item:not(:last-child)::after {
-    display: none;
-  }
-  
-  .user-actions {
-    position: static;
-    margin-top: 20px;
-    display: flex;
-    justify-content: center;
-  }
-  
-  .tab-menu {
-    overflow-x: auto;
-    white-space: nowrap;
-    -webkit-overflow-scrolling: touch;
-    position: sticky;
-    top: 70px;
-  }
-  
-  .tab-content {
-    padding: 20px;
-  }
-  
-  .info-row {
-    flex-direction: column;
-  }
-  
-  .info-label {
-    width: 100%;
-    margin-bottom: 5px;
-  }
-  
   .match-item {
     flex-direction: column;
     align-items: flex-start;
@@ -1582,6 +1572,10 @@ export default {
   .modal-content {
     padding: 20px;
     width: 95%;
+  }
+  
+  .stat-item:not(:last-child)::after {
+    display: none;
   }
 }
 
@@ -1614,15 +1608,6 @@ export default {
   
   .tab-item i {
     font-size: 16px;
-  }
-  
-  .form-actions {
-    flex-direction: column;
-  }
-  
-  .cancel-btn, .save-btn {
-    width: 100%;
-    justify-content: center;
   }
 }
 </style> 
