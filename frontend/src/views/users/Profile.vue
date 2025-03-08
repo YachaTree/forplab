@@ -170,8 +170,8 @@
         
         <form @submit.prevent="updateUserProfile" class="edit-profile-form">
           <div class="form-group">
-            <label for="username">사용자명</label>
-            <input type="text" id="username" v-model="editForm.username" required>
+            <label for="username">사용자명 (변경 불가)</label>
+            <input type="text" id="username" v-model="editForm.username" readonly class="readonly-input">
           </div>
           
           <div class="form-group">
@@ -206,7 +206,13 @@
           
           <div class="form-group">
             <label for="profile_image">프로필 이미지</label>
-            <input type="file" id="profile_image" @change="handleImageUpload">
+            <div class="image-upload-container">
+              <input type="file" id="profile_image" @change="handleImageUpload" accept="image/jpeg,image/jpg,image/png,image/gif">
+              <p class="image-hint">JPEG, JPG, PNG, GIF 형식만 허용됩니다. (최대 5MB)</p>
+              <div v-if="editForm.profile_image" class="selected-image">
+                <p>선택된 이미지: {{ editForm.profile_image.name }}</p>
+              </div>
+            </div>
           </div>
           
           <div class="form-actions">
@@ -349,7 +355,8 @@ export default {
       
       try {
         const formData = new FormData();
-        formData.append('username', this.editForm.username);
+        
+        // 기본 정보 추가
         formData.append('email', this.editForm.email);
         
         if (this.editForm.phone) {
@@ -363,17 +370,77 @@ export default {
         formData.append('skill_level', this.editForm.skill_level);
         formData.append('bio', this.editForm.bio);
         
+        // 이미지가 있는 경우 추가
         if (this.editForm.profile_image) {
-          formData.append('profile_image', this.editForm.profile_image);
+          // 파일 이름에 확장자가 없는 경우 추가
+          const fileName = this.editForm.profile_image.name;
+          const fileType = this.editForm.profile_image.type;
+          
+          // 파일 타입에 따라 확장자 결정
+          let extension = '';
+          if (fileType === 'image/jpeg' || fileType === 'image/jpg') extension = '.jpg';
+          else if (fileType === 'image/png') extension = '.png';
+          else if (fileType === 'image/gif') extension = '.gif';
+          
+          // 파일 이름에 확장자가 없으면 추가
+          const finalFileName = fileName.includes('.') ? fileName : fileName + extension;
+          
+          // 파일 객체를 새로 생성하여 이름 변경
+          const renamedFile = new File([this.editForm.profile_image], finalFileName, { type: fileType });
+          
+          formData.append('profile_image', renamedFile);
+          console.log('이미지 파일 추가:', finalFileName, fileType);
         }
         
-        await this.updateProfile(formData);
+        console.log('프로필 업데이트 요청 데이터:', Object.fromEntries(formData.entries()));
+        
+        // 프로필 업데이트 요청
+        const response = await this.updateProfile(formData);
+        console.log('프로필 업데이트 응답:', response);
         
         this.showEditForm = false;
         alert('프로필이 성공적으로 업데이트되었습니다.');
+        
+        // 프로필 정보 다시 불러오기
+        await this.fetchUserProfile();
       } catch (error) {
         console.error('프로필 업데이트 실패:', error);
-        alert('프로필 업데이트에 실패했습니다. 다시 시도해주세요.');
+        
+        // 에러 메시지 상세 출력
+        if (error.response) {
+          console.error('에러 응답:', error.response.status, error.response.data);
+          
+          // 백엔드에서 반환한 에러 메시지가 있으면 표시
+          if (error.response.data) {
+            let errorMessage = '프로필 업데이트에 실패했습니다: ';
+            
+            // 에러 메시지 형식에 따라 처리
+            if (error.response.data.detail) {
+              errorMessage += error.response.data.detail;
+            } else if (error.response.data.profile_image) {
+              // 이미지 관련 에러 메시지
+              errorMessage += `이미지 오류: ${error.response.data.profile_image.join(', ')}`;
+            } else {
+              // 기타 필드 에러
+              const errors = [];
+              for (const field in error.response.data) {
+                if (Array.isArray(error.response.data[field])) {
+                  errors.push(`${field}: ${error.response.data[field].join(', ')}`);
+                }
+              }
+              errorMessage += errors.join('; ');
+            }
+            
+            alert(errorMessage);
+          } else {
+            alert('프로필 업데이트에 실패했습니다. 다시 시도해주세요.');
+          }
+        } else if (error.message) {
+          // 클라이언트 측 유효성 검사 에러
+          alert(error.message);
+        } else {
+          alert('프로필 업데이트에 실패했습니다. 다시 시도해주세요.');
+        }
       } finally {
         this.updating = false;
       }
@@ -381,9 +448,25 @@ export default {
     
     handleImageUpload(event) {
       const file = event.target.files[0];
-      if (file) {
-        this.editForm.profile_image = file;
+      if (!file) return;
+      
+      // 이미지 파일 크기 및 형식 검사
+      const maxSize = 5 * 1024 * 1024; // 5MB
+      if (file.size > maxSize) {
+        alert('이미지 크기는 5MB를 초과할 수 없습니다.');
+        event.target.value = ''; // 파일 선택 초기화
+        return;
       }
+      
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+      if (!allowedTypes.includes(file.type)) {
+        alert('이미지는 JPEG, JPG, PNG, GIF 형식만 허용됩니다.');
+        event.target.value = ''; // 파일 선택 초기화
+        return;
+      }
+      
+      this.editForm.profile_image = file;
+      console.log('이미지 파일 선택됨:', file.name, file.type, file.size);
     },
     
     async loadUserTeams() {
@@ -817,6 +900,35 @@ export default {
 .save-btn:disabled {
   background-color: #cccccc;
   cursor: not-allowed;
+}
+
+.readonly-input {
+  background-color: #f8f9fa;
+  cursor: not-allowed;
+}
+
+.image-upload-container {
+  position: relative;
+}
+
+.image-hint {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  padding: 5px;
+  background-color: #f8f9fa;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.8rem;
+}
+
+.selected-image {
+  margin-top: 5px;
+  padding: 5px;
+  background-color: #f8f9fa;
+  border: 1px solid #ddd;
+  border-radius: 4px;
 }
 
 @media (max-width: 768px) {
