@@ -1,54 +1,6 @@
 <template>
   <div id="app">
-    <header class="header">
-      <div class="container">
-        <div class="logo">
-          <router-link to="/">
-            <span class="logo-text">플랩풋볼</span>
-          </router-link>
-        </div>
-        
-        <nav class="nav">
-          <ul class="nav-list">
-            <li class="nav-item">
-              <router-link to="/matches">매치</router-link>
-            </li>
-            <li class="nav-item">
-              <router-link to="/venues">구장</router-link>
-            </li>
-            <li class="nav-item">
-              <router-link to="/teams">팀</router-link>
-            </li>
-            <li class="nav-item">
-              <router-link to="/users/search">사용자 검색</router-link>
-            </li>
-            <li class="nav-item">
-              <router-link to="/friends">친구</router-link>
-            </li>
-          </ul>
-        </nav>
-        
-        <div class="auth-buttons">
-          <template v-if="isAuthenticated">
-            <div class="user-menu">
-              <button class="user-button" @click="toggleUserMenu">
-                {{ user ? user.username : '사용자' }}
-              </button>
-              <div v-if="showUserMenu" class="user-dropdown">
-                <router-link to="/profile" class="dropdown-item">프로필</router-link>
-                <router-link to="/users/search" class="dropdown-item">사용자 검색</router-link>
-                <router-link to="/friends" class="dropdown-item">친구 관리</router-link>
-                <a href="#" class="dropdown-item" @click.prevent="handleLogout">로그아웃</a>
-              </div>
-            </div>
-          </template>
-          <template v-else>
-            <router-link to="/login" class="login-button">로그인</router-link>
-            <router-link to="/register" class="register-button">회원가입</router-link>
-          </template>
-        </div>
-      </div>
-    </header>
+    <Navbar />
     
     <main class="main-content">
       <router-view />
@@ -103,60 +55,13 @@
 </template>
 
 <script>
-import { ref, computed, onMounted } from 'vue';
-import { useStore } from 'vuex';
-import { useRouter } from 'vue-router';
+import Navbar from '@/components/Navbar.vue';
 
 export default {
   name: 'App',
-  
-  setup() {
-    const store = useStore();
-    const router = useRouter();
-    
-    const showUserMenu = ref(false);
-    
-    const isAuthenticated = computed(() => store.getters.isAuthenticated);
-    const user = computed(() => store.getters.user);
-    
-    // 사용자 메뉴 토글
-    const toggleUserMenu = () => {
-      showUserMenu.value = !showUserMenu.value;
-    };
-    
-    // 로그아웃 처리
-    const handleLogout = () => {
-      store.dispatch('auth/logout');
-      router.push('/');
-      showUserMenu.value = false;
-    };
-    
-    // 클릭 이벤트 리스너 (사용자 메뉴 외부 클릭 시 닫기)
-    const handleClickOutside = (event) => {
-      const userMenu = document.querySelector('.user-menu');
-      if (userMenu && !userMenu.contains(event.target)) {
-        showUserMenu.value = false;
-      }
-    };
-    
-    // 사용자 정보 가져오기
-    onMounted(() => {
-      if (isAuthenticated.value && !user.value) {
-        store.dispatch('auth/fetchUserProfile');
-      }
-      
-      // 클릭 이벤트 리스너 등록
-      document.addEventListener('click', handleClickOutside);
-    });
-    
-    return {
-      isAuthenticated,
-      user,
-      showUserMenu,
-      toggleUserMenu,
-      handleLogout,
-    };
-  },
+  components: {
+    Navbar
+  }
 };
 </script>
 
@@ -190,115 +95,7 @@ ul {
   list-style: none;
 }
 
-/* 헤더 스타일 */
-.header {
-  background-color: white;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  position: sticky;
-  top: 0;
-  z-index: 100;
-}
-
-.header .container {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  height: 70px;
-}
-
-.logo-text {
-  font-size: 1.5rem;
-  font-weight: bold;
-  color: #4CAF50;
-}
-
-.nav-list {
-  display: flex;
-  gap: 20px;
-}
-
-.nav-item a {
-  padding: 8px 12px;
-  border-radius: 4px;
-  transition: background-color 0.3s;
-}
-
-.nav-item a:hover,
-.nav-item a.router-link-active {
-  background-color: rgba(76, 175, 80, 0.1);
-  color: #4CAF50;
-}
-
-.auth-buttons {
-  display: flex;
-  gap: 10px;
-}
-
-.login-button,
-.register-button {
-  padding: 8px 16px;
-  border-radius: 4px;
-  transition: all 0.3s;
-}
-
-.login-button {
-  color: #4CAF50;
-}
-
-.register-button {
-  background-color: #4CAF50;
-  color: white;
-}
-
-.login-button:hover {
-  background-color: rgba(76, 175, 80, 0.1);
-}
-
-.register-button:hover {
-  background-color: #45a049;
-}
-
-/* 사용자 메뉴 스타일 */
-.user-menu {
-  position: relative;
-}
-
-.user-button {
-  padding: 8px 16px;
-  border: none;
-  background-color: transparent;
-  cursor: pointer;
-  border-radius: 4px;
-  transition: background-color 0.3s;
-}
-
-.user-button:hover {
-  background-color: rgba(76, 175, 80, 0.1);
-}
-
-.user-dropdown {
-  position: absolute;
-  top: 100%;
-  right: 0;
-  width: 150px;
-  background-color: white;
-  border-radius: 4px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
-  z-index: 10;
-}
-
-.dropdown-item {
-  display: block;
-  padding: 10px 15px;
-  transition: background-color 0.3s;
-}
-
-.dropdown-item:hover {
-  background-color: #f5f5f5;
-}
-
-/* 메인 콘텐츠 스타일 */
+/* 메인 콘텐츠 */
 .main-content {
   min-height: calc(100vh - 70px - 250px); /* 헤더와 푸터 높이를 제외한 최소 높이 */
   padding: 30px 0;
@@ -320,6 +117,12 @@ ul {
 
 .footer-logo {
   margin-bottom: 20px;
+}
+
+.logo-text {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #4CAF50;
 }
 
 .footer-tagline {
@@ -361,42 +164,6 @@ ul {
 
 /* 반응형 스타일 */
 @media (max-width: 768px) {
-  .header .container {
-    flex-direction: column;
-    height: auto;
-    padding: 15px;
-  }
-  
-  .logo {
-    margin-bottom: 15px;
-  }
-  
-  .nav {
-    margin-bottom: 15px;
-  }
-  
-  .nav-list {
-    display: flex;
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    padding: 10px 0;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none; /* Firefox */
-  }
-  
-  .nav-list::-webkit-scrollbar {
-    display: none; /* Chrome, Safari, Edge */
-  }
-  
-  .nav-item {
-    flex: 0 0 auto;
-    white-space: nowrap;
-  }
-  
-  .auth-buttons {
-    justify-content: center;
-  }
-  
   .footer-content {
     flex-direction: column;
   }
@@ -405,25 +172,19 @@ ul {
     flex-direction: column;
     gap: 20px;
   }
-  
-  .user-dropdown {
-    right: 0;
-    left: auto;
-  }
 }
 
 @media (max-width: 576px) {
-  .header .container {
-    padding: 0 10px;
+  .footer-links {
+    gap: 15px;
   }
   
-  .logo-text {
-    font-size: 1.2rem;
+  .footer-section h3 {
+    margin-bottom: 10px;
   }
   
-  .nav-item a {
-    padding: 6px 10px;
-    font-size: 14px;
+  .footer-section ul li {
+    margin-bottom: 8px;
   }
 }
 </style>
