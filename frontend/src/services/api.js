@@ -85,7 +85,25 @@ apiClient.interceptors.response.use(
 // 인증 관련 API
 export const authAPI = {
   login(credentials) {
-    return apiClient.post('/users/token/', credentials);
+    console.log('API 로그인 요청:', credentials);
+    // 백엔드 API가 username 필드를 사용하므로 email이 있으면 username으로 변환
+    const data = { ...credentials };
+    if (data.email && !data.username) {
+      data.username = data.email;
+      delete data.email;
+    }
+    console.log('변환된 로그인 요청:', data);
+    
+    // 로그인 요청 시 추가 디버깅 정보
+    return apiClient.post('/users/token/', data)
+      .then(response => {
+        console.log('로그인 성공 응답:', response.data);
+        return response;
+      })
+      .catch(error => {
+        console.error('로그인 실패 응답:', error.response ? error.response.data : error.message);
+        throw error;
+      });
   },
   register(userData) {
     return apiClient.post('/users/register/', userData);
@@ -176,7 +194,7 @@ export const teamAPI = {
     });
   },
   joinTeam(id, requestData) {
-    return apiClient.post(`/teams/${id}/join/`, requestData);
+    return apiClient.post(`/teams/${id}/join-requests/create/`, requestData);
   },
   leaveTeam(id) {
     return apiClient.post(`/teams/${id}/leave/`);
@@ -197,10 +215,10 @@ export const teamAPI = {
     return apiClient.delete(`/teams/${teamId}/members/${memberId}/remove/`);
   },
   acceptJoinRequest(teamId, requestId) {
-    return apiClient.post(`/teams/${teamId}/requests/${requestId}/accept/`);
+    return apiClient.post(`/teams/${teamId}/join-requests/${requestId}/accept/`);
   },
   rejectJoinRequest(teamId, requestId) {
-    return apiClient.post(`/teams/${teamId}/requests/${requestId}/reject/`);
+    return apiClient.post(`/teams/${teamId}/join-requests/${requestId}/reject/`);
   },
 };
 

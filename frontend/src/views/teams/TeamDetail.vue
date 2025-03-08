@@ -261,11 +261,21 @@ export default {
     }),
     
     isTeamMember() {
-      if (!this.isAuthenticated || !this.team || !this.team.members || !this.user) {
+      if (!this.isAuthenticated || !this.team || !this.user) {
         return false;
       }
       
-      return this.team.members.some(member => member.id === this.user.id);
+      // 백엔드에서 제공하는 is_member 필드 사용
+      if (this.team.is_member !== undefined) {
+        return this.team.is_member;
+      }
+      
+      // 백엔드에서 is_member 필드를 제공하지 않는 경우 직접 확인
+      if (this.team.members) {
+        return this.team.members.some(member => member.user && member.user.id === this.user.id);
+      }
+      
+      return false;
     },
     
     isTeamLeader() {
