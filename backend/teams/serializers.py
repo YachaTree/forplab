@@ -82,8 +82,13 @@ class TeamDetailSerializer(serializers.ModelSerializer):
                   'created_at', 'updated_at')
     
     def get_members(self, obj):
-        members = TeamMember.objects.filter(team=obj)
-        return TeamMemberSerializer(members, many=True).data
+        user = self.context['request'].user
+        # 팀 소유자이거나 팀 멤버인 경우에만 팀원 목록을 볼 수 있음
+        if user == obj.owner or TeamMember.objects.filter(team=obj, user=user).exists():
+            members = TeamMember.objects.filter(team=obj)
+            return TeamMemberSerializer(members, many=True).data
+        # 권한이 없는 경우 빈 배열 반환
+        return []
     
     def get_join_requests(self, obj):
         user = self.context['request'].user

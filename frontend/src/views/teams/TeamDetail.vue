@@ -127,6 +127,7 @@
           class="tab-item" 
           :class="{ active: activeTab === 'members' }"
           @click="activeTab = 'members'"
+          v-if="isTeamMember || isTeamLeader"
         >
           <i class="fas fa-users"></i>
           팀원 목록
@@ -210,7 +211,7 @@
         </div>
         
         <!-- 팀원 목록 탭 -->
-        <div v-if="activeTab === 'members'" class="tab-pane">
+        <div v-if="activeTab === 'members' && (isTeamMember || isTeamLeader)" class="tab-pane">
           <div class="team-members-section">
             <h2 class="section-title">팀원 목록</h2>
             
@@ -492,6 +493,13 @@ export default {
     isAuthenticated(newValue) {
       if (newValue && !this.user) {
         this.fetchUserProfile();
+      }
+    },
+    
+    isTeamMember(newValue) {
+      // 팀원이 아닌 경우 팀원 목록 탭이 활성화되어 있다면 팀 정보 탭으로 변경
+      if (!newValue && !this.isTeamLeader && this.activeTab === 'members') {
+        this.activeTab = 'info';
       }
     }
   },
