@@ -266,6 +266,7 @@ export default {
   },
   
   created() {
+    console.log('Profile 컴포넌트 생성됨, 경로:', this.$route.path);
     this.fetchUserProfile();
     this.loadUserTeams();
     this.loadUserMatches();
@@ -278,7 +279,7 @@ export default {
     }),
     
     async fetchUserProfile() {
-      console.log('프로필 정보 조회 시작');
+      console.log('프로필 정보 조회 시작, 경로:', this.$route.path);
       try {
         // 현재 로그인한 사용자의 프로필 정보 가져오기
         if (this.$route.params.id) {
@@ -289,15 +290,7 @@ export default {
           
           // 프로필 수정 폼 초기화 (자신의 프로필인 경우에만)
           if (this.isCurrentUser && this.user) {
-            this.editForm = {
-              username: this.user.username,
-              email: this.user.email,
-              phone: this.user.phone || '',
-              birth_date: this.user.birth_date || '',
-              skill_level: this.user.skill_level || 'BEG',
-              bio: this.user.bio || '',
-              profile_image: null
-            };
+            this.initEditForm();
           }
         } else {
           console.log('현재 로그인한 사용자 프로필 조회');
@@ -307,20 +300,24 @@ export default {
           
           // 프로필 수정 폼 초기화
           if (this.user) {
-            this.editForm = {
-              username: this.user.username,
-              email: this.user.email,
-              phone: this.user.phone || '',
-              birth_date: this.user.birth_date || '',
-              skill_level: this.user.skill_level || 'BEG',
-              bio: this.user.bio || '',
-              profile_image: null
-            };
+            this.initEditForm();
           }
         }
       } catch (error) {
         console.error('프로필 정보 조회 실패:', error);
       }
+    },
+    
+    initEditForm() {
+      this.editForm = {
+        username: this.user.username,
+        email: this.user.email,
+        phone: this.user.phone || '',
+        birth_date: this.user.birth_date || '',
+        skill_level: this.user.skill_level || 'BEG',
+        bio: this.user.bio || '',
+        profile_image: null
+      };
     },
     
     async updateUserProfile() {
