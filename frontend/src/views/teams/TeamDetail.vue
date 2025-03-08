@@ -71,7 +71,7 @@
         </div>
         
         <div class="team-actions-container">
-          <!-- 팀 가입 신청 버튼 (로그인 상태이고, 팀원이 아니고, 가입 신청 중이 아닌 경우) -->
+          <!-- 팀 가입 신청 버튼 (로그인 상태이고, 팀원이 아니고, 팀장이 아니고, 가입 신청 중이 아닌 경우) -->
           <div class="team-actions" v-if="isAuthenticated && !isTeamMember && !isTeamLeader && !hasJoinRequest">
             <button 
               class="join-team-btn" 
@@ -91,7 +91,7 @@
             </button>
           </div>
           
-          <!-- 팀 탈퇴 버튼 (팀원인 경우) -->
+          <!-- 팀 탈퇴 버튼 (팀원이지만 팀장이 아닌 경우) -->
           <div class="team-actions" v-if="isTeamMember && !isTeamLeader">
             <button class="leave-team-btn" @click="confirmLeaveTeam">
               <i class="fas fa-sign-out-alt"></i>
@@ -100,7 +100,7 @@
           </div>
           
           <!-- 가입 신청 상태 (신청 중인 경우) -->
-          <div class="team-actions" v-if="hasJoinRequest">
+          <div class="team-actions" v-if="hasJoinRequest && !isTeamMember">
             <div class="join-request-status">
               <i class="fas fa-hourglass-half"></i>
               <span>가입 신청 중</span>
