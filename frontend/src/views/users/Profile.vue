@@ -207,7 +207,10 @@
           <div class="form-group">
             <label for="profile_image">프로필 이미지</label>
             <div class="image-upload-container">
-              <input type="file" id="profile_image" @change="handleImageUpload" accept="image/jpeg,image/jpg,image/png,image/gif">
+              <label for="profile_image_input" class="upload-label">
+                <i class="fas fa-upload"></i> 이미지 선택하기
+              </label>
+              <input type="file" id="profile_image_input" @change="handleImageUpload" accept="image/jpeg,image/jpg,image/png,image/gif">
               <p class="image-hint">JPEG, JPG, PNG, GIF 형식만 허용됩니다. (최대 5MB)</p>
               <div v-if="editForm.profile_image" class="selected-image">
                 <p>선택된 이미지: {{ editForm.profile_image.name }}</p>
@@ -800,6 +803,20 @@ export default {
   background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
   color: var(--white);
   position: relative;
+  border-radius: var(--border-radius) var(--border-radius) 0 0;
+  overflow: hidden;
+}
+
+.profile-header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: url('/img/pattern.png');
+  opacity: 0.1;
+  z-index: 0;
 }
 
 .profile-avatar {
@@ -812,6 +829,8 @@ export default {
   margin-right: 30px;
   flex-shrink: 0;
   transition: transform 0.3s;
+  position: relative;
+  z-index: 1;
 }
 
 .profile-avatar:hover {
@@ -826,6 +845,8 @@ export default {
 
 .profile-info {
   flex-grow: 1;
+  position: relative;
+  z-index: 1;
 }
 
 .username {
@@ -846,11 +867,27 @@ export default {
   flex-wrap: wrap;
   gap: 20px;
   margin-bottom: 20px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  padding: 15px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
 .stat-item {
   text-align: center;
   min-width: 60px;
+  position: relative;
+}
+
+.stat-item:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  right: -10px;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 70%;
+  width: 1px;
+  background: rgba(255, 255, 255, 0.2);
 }
 
 .stat-value {
@@ -871,12 +908,14 @@ export default {
   border-radius: 20px;
   font-size: 14px;
   margin-top: 10px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
 .user-actions {
   position: absolute;
   top: 30px;
   right: 30px;
+  z-index: 1;
 }
 
 .edit-profile-btn {
@@ -888,11 +927,14 @@ export default {
   font-size: 14px;
   display: flex;
   align-items: center;
-  transition: background-color 0.3s;
+  transition: all 0.3s;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
 .edit-profile-btn:hover {
   background-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 .edit-profile-btn i {
@@ -903,6 +945,10 @@ export default {
 .tab-menu {
   display: flex;
   border-bottom: 1px solid var(--border-color);
+  background-color: #f9f9f9;
+  position: sticky;
+  top: 70px; /* 네비게이션 바 높이에 맞춤 */
+  z-index: 10;
 }
 
 .tab-item {
@@ -949,6 +995,7 @@ export default {
 .tab-content {
   padding: 30px;
   min-height: 300px;
+  animation: fadeIn 0.5s ease-out;
 }
 
 /* 기본 정보 탭 */
@@ -962,6 +1009,16 @@ export default {
   color: var(--text-color);
   border-bottom: 1px solid var(--border-color);
   padding-bottom: 10px;
+  display: flex;
+  align-items: center;
+}
+
+.info-section h3::before {
+  content: '\f05a';
+  font-family: 'Font Awesome 5 Free';
+  font-weight: 900;
+  margin-right: 10px;
+  color: var(--primary-color);
 }
 
 .info-row {
@@ -969,6 +1026,13 @@ export default {
   margin-bottom: 15px;
   padding-bottom: 15px;
   border-bottom: 1px solid var(--border-color);
+  transition: background-color 0.3s;
+}
+
+.info-row:hover {
+  background-color: var(--primary-light);
+  border-radius: var(--border-radius);
+  padding-left: 10px;
 }
 
 .info-label {
@@ -1001,6 +1065,7 @@ export default {
   overflow: hidden;
   cursor: pointer;
   transition: transform 0.3s, box-shadow 0.3s;
+  position: relative;
 }
 
 .team-card:hover {
@@ -1008,16 +1073,57 @@ export default {
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
 }
 
+.team-card::after {
+  content: '\f105';
+  font-family: 'Font Awesome 5 Free';
+  font-weight: 900;
+  position: absolute;
+  right: 15px;
+  bottom: 15px;
+  color: var(--primary-color);
+  font-size: 20px;
+  opacity: 0;
+  transition: opacity 0.3s, transform 0.3s;
+}
+
+.team-card:hover::after {
+  opacity: 1;
+  transform: translateX(5px);
+}
+
 .team-logo {
   height: 140px;
   overflow: hidden;
   background-color: #f5f5f5;
+  position: relative;
+}
+
+.team-logo::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(to bottom, transparent 70%, rgba(0, 0, 0, 0.5));
+  z-index: 1;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.team-card:hover .team-logo::before {
+  opacity: 1;
 }
 
 .team-logo img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transition: transform 0.3s;
+}
+
+.team-card:hover .team-logo img {
+  transform: scale(1.05);
 }
 
 .team-info {
@@ -1028,12 +1134,33 @@ export default {
   font-size: 18px;
   font-weight: 700;
   margin-bottom: 5px;
+  color: var(--text-color);
 }
 
 .team-level, .team-region {
   font-size: 14px;
   color: var(--text-light);
   margin-bottom: 5px;
+  display: flex;
+  align-items: center;
+}
+
+.team-level::before {
+  content: '\f005';
+  font-family: 'Font Awesome 5 Free';
+  font-weight: 900;
+  margin-right: 5px;
+  font-size: 12px;
+  color: #ffc107;
+}
+
+.team-region::before {
+  content: '\f3c5';
+  font-family: 'Font Awesome 5 Free';
+  font-weight: 900;
+  margin-right: 5px;
+  font-size: 12px;
+  color: #e91e63;
 }
 
 /* 참여 경기 탭 */
@@ -1052,6 +1179,24 @@ export default {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   cursor: pointer;
   transition: transform 0.3s, box-shadow 0.3s;
+  position: relative;
+  overflow: hidden;
+}
+
+.match-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background-color: var(--primary-color);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.match-item:hover::before {
+  opacity: 1;
 }
 
 .match-item:hover {
@@ -1064,6 +1209,16 @@ export default {
   font-size: 14px;
   color: var(--text-light);
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+.match-date::before {
+  content: '\f133';
+  font-family: 'Font Awesome 5 Free';
+  font-weight: 900;
+  margin-right: 5px;
+  color: var(--primary-color);
 }
 
 .match-title {
@@ -1077,6 +1232,16 @@ export default {
   font-size: 14px;
   color: var(--text-light);
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+.match-venue::before {
+  content: '\f3c5';
+  font-family: 'Font Awesome 5 Free';
+  font-weight: 900;
+  margin-right: 5px;
+  color: #e91e63;
 }
 
 .match-status {
@@ -1114,6 +1279,19 @@ export default {
   text-align: center;
   padding: 40px 0;
   color: var(--text-lighter);
+  background-color: var(--white);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow);
+}
+
+.empty-message::before {
+  content: '\f119';
+  font-family: 'Font Awesome 5 Free';
+  font-weight: 900;
+  font-size: 48px;
+  display: block;
+  margin-bottom: 20px;
+  color: var(--text-lighter);
 }
 
 /* 프로필 수정 모달 */
@@ -1129,6 +1307,7 @@ export default {
   justify-content: center;
   z-index: 1000;
   animation: fadeIn 0.3s;
+  backdrop-filter: blur(3px);
 }
 
 .modal-content {
@@ -1154,6 +1333,16 @@ export default {
   color: var(--text-color);
   border-bottom: 1px solid var(--border-color);
   padding-bottom: 10px;
+  display: flex;
+  align-items: center;
+}
+
+.modal-content h2::before {
+  content: '\f4ff';
+  font-family: 'Font Awesome 5 Free';
+  font-weight: 900;
+  margin-right: 10px;
+  color: var(--primary-color);
 }
 
 .edit-profile-form {
@@ -1172,7 +1361,25 @@ export default {
   font-weight: 500;
   margin-bottom: 5px;
   color: var(--text-light);
+  display: flex;
+  align-items: center;
 }
+
+.form-group label::before {
+  font-family: 'Font Awesome 5 Free';
+  font-weight: 900;
+  margin-right: 5px;
+  font-size: 14px;
+  color: var(--primary-color);
+}
+
+.form-group:nth-child(1) label::before { content: '\f007'; } /* 사용자명 */
+.form-group:nth-child(2) label::before { content: '\f0e0'; } /* 이메일 */
+.form-group:nth-child(3) label::before { content: '\f095'; } /* 연락처 */
+.form-group:nth-child(4) label::before { content: '\f073'; } /* 생년월일 */
+.form-group:nth-child(5) label::before { content: '\f005'; } /* 실력 수준 */
+.form-group:nth-child(6) label::before { content: '\f075'; } /* 자기소개 */
+.form-group:nth-child(7) label::before { content: '\f03e'; } /* 프로필 이미지 */
 
 .form-group input,
 .form-group select,
@@ -1181,7 +1388,7 @@ export default {
   border: 1px solid var(--border-color);
   border-radius: var(--border-radius);
   font-size: 16px;
-  transition: border-color 0.3s;
+  transition: border-color 0.3s, box-shadow 0.3s;
 }
 
 .form-group input:focus,
@@ -1189,6 +1396,7 @@ export default {
 .form-group textarea:focus {
   border-color: var(--primary-color);
   outline: none;
+  box-shadow: 0 0 0 3px var(--primary-light);
 }
 
 .readonly-input {
@@ -1198,6 +1406,30 @@ export default {
 
 .image-upload-container {
   margin-top: 5px;
+}
+
+.image-upload-container input[type="file"] {
+  display: none;
+}
+
+.image-upload-container .upload-label {
+  display: inline-block;
+  padding: 10px 15px;
+  background-color: var(--primary-color);
+  color: white;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: background-color 0.3s;
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+.image-upload-container .upload-label:hover {
+  background-color: var(--primary-dark);
+}
+
+.image-upload-container .upload-label i {
+  margin-right: 8px;
 }
 
 .image-hint {
@@ -1211,6 +1443,16 @@ export default {
   padding: 10px;
   background-color: var(--primary-light);
   border-radius: var(--border-radius);
+  display: flex;
+  align-items: center;
+}
+
+.selected-image::before {
+  content: '\f00c';
+  font-family: 'Font Awesome 5 Free';
+  font-weight: 900;
+  margin-right: 8px;
+  color: var(--primary-color);
 }
 
 .form-actions {
@@ -1228,6 +1470,15 @@ export default {
   border-radius: var(--border-radius);
   font-size: 16px;
   transition: background-color 0.3s;
+  display: flex;
+  align-items: center;
+}
+
+.cancel-btn::before {
+  content: '\f00d';
+  font-family: 'Font Awesome 5 Free';
+  font-weight: 900;
+  margin-right: 8px;
 }
 
 .cancel-btn:hover {
@@ -1241,11 +1492,21 @@ export default {
   border: none;
   border-radius: var(--border-radius);
   font-size: 16px;
-  transition: background-color 0.3s;
+  transition: background-color 0.3s, transform 0.3s;
+  display: flex;
+  align-items: center;
+}
+
+.save-btn::before {
+  content: '\f0c7';
+  font-family: 'Font Awesome 5 Free';
+  font-weight: 900;
+  margin-right: 8px;
 }
 
 .save-btn:hover:not(:disabled) {
   background-color: var(--primary-dark);
+  transform: translateY(-2px);
 }
 
 .save-btn:disabled {
@@ -1269,6 +1530,11 @@ export default {
   
   .user-stats {
     justify-content: center;
+    flex-wrap: wrap;
+  }
+  
+  .stat-item:not(:last-child)::after {
+    display: none;
   }
   
   .user-actions {
@@ -1282,6 +1548,8 @@ export default {
     overflow-x: auto;
     white-space: nowrap;
     -webkit-overflow-scrolling: touch;
+    position: sticky;
+    top: 70px;
   }
   
   .tab-content {
@@ -1346,6 +1614,15 @@ export default {
   
   .tab-item i {
     font-size: 16px;
+  }
+  
+  .form-actions {
+    flex-direction: column;
+  }
+  
+  .cancel-btn, .save-btn {
+    width: 100%;
+    justify-content: center;
   }
 }
 </style> 
