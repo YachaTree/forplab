@@ -238,7 +238,7 @@ export default {
     
     getProfileImageUrl(user) {
       if (!user || !user.profile_image) {
-        return require('@/assets/default-profile.png');
+        return require('@/assets/default-avatar.png');
       }
       
       const imageUrl = user.profile_image;
