@@ -2,6 +2,7 @@ from django.shortcuts import render
 from rest_framework import generics, permissions
 from .serializers import TeamSerializer, TeamDetailSerializer, TeamCreateSerializer, TeamMemberSerializer, TeamJoinRequestSerializer
 from .models import Team, TeamMember, TeamJoinRequest
+import traceback
 
 
 # 임시 뷰 클래스 (나중에 구현 예정)
@@ -273,6 +274,7 @@ class TeamJoinRequestAcceptView(generics.GenericAPIView):
     def post(self, request, *args, **kwargs):
         from rest_framework.response import Response
         from rest_framework import status
+        import traceback
         
         team_id = self.kwargs.get('team_id')
         request_id = self.kwargs.get('request_id')
@@ -313,6 +315,7 @@ class TeamJoinRequestAcceptView(generics.GenericAPIView):
                 from django.db import transaction
                 with transaction.atomic():
                     # 팀원 생성
+                    print(f"팀원 생성 시도: 팀={team.id}, 사용자={join_request.user.id}, 포지션={join_request.position}")
                     team_member = TeamMember.objects.create(
                         team=team,
                         user=join_request.user,
@@ -332,6 +335,7 @@ class TeamJoinRequestAcceptView(generics.GenericAPIView):
                 )
             except Exception as e:
                 print(f"가입 신청 수락 중 오류 발생: {str(e)}")
+                print(traceback.format_exc())  # 상세 오류 스택 트레이스 출력
                 return Response(
                     {"detail": f"가입 신청 수락 중 오류가 발생했습니다: {str(e)}"},
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -348,6 +352,7 @@ class TeamJoinRequestAcceptView(generics.GenericAPIView):
             )
         except Exception as e:
             print(f"가입 신청 수락 중 예상치 못한 오류 발생: {str(e)}")
+            print(traceback.format_exc())  # 상세 오류 스택 트레이스 출력
             return Response(
                 {"detail": "서버 오류가 발생했습니다."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR

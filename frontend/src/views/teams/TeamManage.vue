@@ -398,6 +398,11 @@ export default {
       } catch (error) {
         console.error('가입 신청 수락 실패:', error);
         
+        // 상세 에러 정보 로깅
+        if (error.response) {
+          console.error('에러 응답:', error.response.status, error.response.data);
+        }
+        
         // 이미 처리된 요청인 경우 (400 또는 404 에러)
         if (error.response && (error.response.status === 404 || error.response.status === 400)) {
           let message = '이미 처리된 가입 신청입니다.';
@@ -410,7 +415,11 @@ export default {
         } 
         // 서버 오류인 경우 (500 에러)
         else if (error.response && error.response.status === 500) {
-          alert('서버 오류가 발생했습니다. 팀 정보를 다시 불러옵니다.');
+          let message = '서버 오류가 발생했습니다. 팀 정보를 다시 불러옵니다.';
+          if (error.response.data && error.response.data.detail) {
+            message = error.response.data.detail;
+          }
+          alert(message);
           // 팀 정보 다시 불러오기
           await this.fetchTeam();
         }
@@ -419,9 +428,7 @@ export default {
         }
       } finally {
         // 처리 중 상태 해제
-        if (request) {
-          request.processing = false;
-        }
+        request.processing = false;
       }
     },
     
