@@ -9,13 +9,13 @@
       
       <form @submit.prevent="handleLogin">
         <div class="form-group">
-          <label for="username">아이디</label>
+          <label for="username">이메일</label>
           <input 
-            type="text" 
+            type="email" 
             id="username" 
             v-model="username" 
             required 
-            placeholder="아이디를 입력하세요"
+            placeholder="이메일을 입력하세요"
           />
         </div>
         
@@ -65,15 +65,31 @@ export default {
     
     // 로그인 처리
     const handleLogin = async () => {
-      const success = await store.dispatch('auth/login', {
-        username: username.value,
-        password: password.value,
-      });
-      
-      if (success) {
-        // 리다이렉트 처리
-        const redirectPath = route.query.redirect || '/';
-        router.push(redirectPath);
+      try {
+        console.log('로그인 시도:', {
+          username: username.value,
+          password: password.value,
+        });
+        
+        // 이메일 형식 확인
+        if (username.value.includes('@')) {
+          console.log('이메일 형식의 사용자 이름 감지됨');
+        } else {
+          console.log('일반 사용자 이름 감지됨');
+        }
+        
+        const success = await store.dispatch('auth/login', {
+          username: username.value,
+          password: password.value,
+        });
+        
+        if (success) {
+          // 리다이렉트 처리
+          const redirectPath = route.query.redirect || '/';
+          router.push(redirectPath);
+        }
+      } catch (error) {
+        console.error('로그인 실패:', error);
       }
     };
     

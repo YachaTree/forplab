@@ -22,4 +22,8 @@ urlpatterns = [
     path('<int:team_id>/join-requests/create/', views.TeamJoinRequestCreateView.as_view(), name='team_join_request_create'),
     path('<int:team_id>/join-requests/<int:request_id>/accept/', views.TeamJoinRequestAcceptView.as_view(), name='team_join_request_accept'),
     path('<int:team_id>/join-requests/<int:request_id>/reject/', views.TeamJoinRequestRejectView.as_view(), name='team_join_request_reject'),
+    
+    # 팀 탈퇴 및 가입 신청 취소 URL
+    path('<int:team_id>/leave/', views.TeamLeaveView.as_view(), name='team_leave'),
+    path('<int:team_id>/cancel-request/', views.TeamCancelJoinRequestView.as_view(), name='team_cancel_join_request'),
 ] 

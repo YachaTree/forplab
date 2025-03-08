@@ -3,7 +3,6 @@ from rest_framework import generics, permissions
 from .serializers import TeamSerializer, TeamDetailSerializer, TeamCreateSerializer, TeamMemberSerializer, TeamJoinRequestSerializer
 from .models import Team, TeamMember, TeamJoinRequest
 
-# Create your views here.
 
 # 임시 뷰 클래스 (나중에 구현 예정)
 class TeamListView(generics.ListAPIView):
@@ -206,27 +205,67 @@ class TeamJoinRequestListView(generics.ListAPIView):
             from rest_framework.exceptions import PermissionDenied
             raise PermissionDenied("팀 소유자만 가입 신청 목록을 볼 수 있습니다.")
         
-        return TeamJoinRequest.objects.filter(team_id=team_id)
+        return TeamJoinRequest.objects.filter(team_id=team_id, status='PENDING')
 
 class TeamJoinRequestCreateView(generics.CreateAPIView):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = TeamJoinRequestSerializer
     
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['team_id'] = self.kwargs.get('team_id')
+        return context
+    
     def perform_create(self, serializer):
         team_id = self.kwargs.get('team_id')
         team = Team.objects.get(id=team_id)
+        
+        # 디버깅 로그 추가
+        print(f"팀 가입 요청 생성: 팀={team.id}, 사용자={self.request.user.id}, 데이터={serializer.validated_data}")
         
         # 이미 팀원인 경우 가입 신청 불가
         if TeamMember.objects.filter(team=team, user=self.request.user).exists():
             from rest_framework.exceptions import ValidationError
             raise ValidationError("이미 팀원입니다.")
         
-        # 이미 가입 신청한 경우 중복 신청 불가
-        if TeamJoinRequest.objects.filter(team=team, user=self.request.user).exists():
-            from rest_framework.exceptions import ValidationError
-            raise ValidationError("이미 가입 신청을 했습니다.")
+        # 이미 가입 신청이 있는지 확인
+        existing_request = TeamJoinRequest.objects.filter(team=team, user=self.request.user).first()
         
-        serializer.save(team=team, user=self.request.user)
+        if existing_request:
+            # 이미 대기 중인 가입 신청이 있는 경우
+            if existing_request.status == 'PENDING':
+                from rest_framework.exceptions import ValidationError
+                raise ValidationError("이미 가입 신청을 했습니다.")
+            # 이미 거절된 가입 신청이 있는 경우, 상태를 PENDING으로 변경하고 메시지와 포지션 업데이트
+            elif existing_request.status == 'REJECTED':
+                existing_request.status = 'PENDING'
+                existing_request.message = serializer.validated_data.get('message', '')
+                existing_request.position = serializer.validated_data.get('position', '')
+                existing_request.save()
+                print(f"거절된 가입 신청을 다시 활성화: 팀={team.id}, 사용자={self.request.user.id}")
+                return
+            # 이미 수락된 가입 신청이 있는 경우
+            elif existing_request.status == 'ACCEPTED':
+                # 팀원이 아닌데 수락된 가입 신청이 있는 경우, 상태를 PENDING으로 변경하고 메시지와 포지션 업데이트
+                if not TeamMember.objects.filter(team=team, user=self.request.user).exists():
+                    existing_request.status = 'PENDING'
+                    existing_request.message = serializer.validated_data.get('message', '')
+                    existing_request.position = serializer.validated_data.get('position', '')
+                    existing_request.save()
+                    print(f"수락되었지만 팀원이 아닌 가입 신청을 다시 활성화: 팀={team.id}, 사용자={self.request.user.id}")
+                    return
+                else:
+                    from rest_framework.exceptions import ValidationError
+                    raise ValidationError("이미 수락된 가입 신청이 있습니다. 팀원 목록을 확인해주세요.")
+        
+        try:
+            # 저장 시도
+            serializer.save(team=team, user=self.request.user)
+            print("팀 가입 요청 생성 성공")
+        except Exception as e:
+            # 예외 발생 시 로그 출력
+            print(f"팀 가입 요청 생성 실패: {str(e)}")
+            raise
 
 class TeamJoinRequestAcceptView(generics.GenericAPIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -237,6 +276,8 @@ class TeamJoinRequestAcceptView(generics.GenericAPIView):
         
         team_id = self.kwargs.get('team_id')
         request_id = self.kwargs.get('request_id')
+        
+        print(f"가입 신청 수락 시도: 팀={team_id}, 요청={request_id}, 사용자={self.request.user.id}")
         
         try:
             team = Team.objects.get(id=team_id)
@@ -249,21 +290,52 @@ class TeamJoinRequestAcceptView(generics.GenericAPIView):
                     status=status.HTTP_403_FORBIDDEN
                 )
             
-            # 팀원 생성
-            TeamMember.objects.create(
-                team=team,
-                user=join_request.user,
-                role='MEMBER',
-                position=join_request.position
-            )
+            # 이미 처리된 요청인지 확인
+            if join_request.status != 'PENDING':
+                return Response(
+                    {"detail": f"이미 처리된 가입 신청입니다. (현재 상태: {join_request.get_status_display()})"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
             
-            # 가입 신청 삭제
-            join_request.delete()
+            # 이미 팀원인지 확인
+            if TeamMember.objects.filter(team=team, user=join_request.user).exists():
+                # 이미 팀원이면 요청 상태만 업데이트
+                join_request.status = 'ACCEPTED'
+                join_request.save()
+                
+                return Response(
+                    {"detail": "이미 팀원입니다. 가입 신청 상태가 업데이트되었습니다."},
+                    status=status.HTTP_200_OK
+                )
             
-            return Response(
-                {"detail": "가입 신청이 수락되었습니다."},
-                status=status.HTTP_200_OK
-            )
+            try:
+                # 트랜잭션으로 처리하여 일관성 보장
+                from django.db import transaction
+                with transaction.atomic():
+                    # 팀원 생성
+                    team_member = TeamMember.objects.create(
+                        team=team,
+                        user=join_request.user,
+                        role='PLAYER',
+                        position=join_request.position
+                    )
+                    
+                    # 가입 신청 상태 변경
+                    join_request.status = 'ACCEPTED'
+                    join_request.save()
+                
+                print(f"가입 신청 수락 성공: 팀={team_id}, 요청={request_id}, 사용자={join_request.user.id}, 팀원 ID={team_member.id}")
+                
+                return Response(
+                    {"detail": "가입 신청이 수락되었습니다."},
+                    status=status.HTTP_200_OK
+                )
+            except Exception as e:
+                print(f"가입 신청 수락 중 오류 발생: {str(e)}")
+                return Response(
+                    {"detail": f"가입 신청 수락 중 오류가 발생했습니다: {str(e)}"},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
         except Team.DoesNotExist:
             return Response(
                 {"detail": "팀을 찾을 수 없습니다."},
@@ -273,6 +345,12 @@ class TeamJoinRequestAcceptView(generics.GenericAPIView):
             return Response(
                 {"detail": "가입 신청을 찾을 수 없습니다."},
                 status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            print(f"가입 신청 수락 중 예상치 못한 오류 발생: {str(e)}")
+            return Response(
+                {"detail": "서버 오류가 발생했습니다."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
 class TeamJoinRequestRejectView(generics.GenericAPIView):
@@ -285,6 +363,8 @@ class TeamJoinRequestRejectView(generics.GenericAPIView):
         team_id = self.kwargs.get('team_id')
         request_id = self.kwargs.get('request_id')
         
+        print(f"가입 신청 거절 시도: 팀={team_id}, 요청={request_id}, 사용자={self.request.user.id}")
+        
         try:
             team = Team.objects.get(id=team_id)
             join_request = TeamJoinRequest.objects.get(id=request_id, team=team)
@@ -296,13 +376,30 @@ class TeamJoinRequestRejectView(generics.GenericAPIView):
                     status=status.HTTP_403_FORBIDDEN
                 )
             
-            # 가입 신청 삭제
-            join_request.delete()
+            # 이미 처리된 요청인지 확인
+            if join_request.status != 'PENDING':
+                return Response(
+                    {"detail": f"이미 처리된 가입 신청입니다. (현재 상태: {join_request.get_status_display()})"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
             
-            return Response(
-                {"detail": "가입 신청이 거절되었습니다."},
-                status=status.HTTP_200_OK
-            )
+            try:
+                # 가입 신청 상태 변경
+                join_request.status = 'REJECTED'
+                join_request.save()
+                
+                print(f"가입 신청 거절 성공: 팀={team_id}, 요청={request_id}, 사용자={join_request.user.id}")
+                
+                return Response(
+                    {"detail": "가입 신청이 거절되었습니다."},
+                    status=status.HTTP_200_OK
+                )
+            except Exception as e:
+                print(f"가입 신청 거절 중 오류 발생: {str(e)}")
+                return Response(
+                    {"detail": f"가입 신청 거절 중 오류가 발생했습니다: {str(e)}"},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
         except Team.DoesNotExist:
             return Response(
                 {"detail": "팀을 찾을 수 없습니다."},
@@ -311,5 +408,80 @@ class TeamJoinRequestRejectView(generics.GenericAPIView):
         except TeamJoinRequest.DoesNotExist:
             return Response(
                 {"detail": "가입 신청을 찾을 수 없습니다."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            print(f"가입 신청 거절 중 예상치 못한 오류 발생: {str(e)}")
+            return Response(
+                {"detail": "서버 오류가 발생했습니다."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+class TeamLeaveView(generics.GenericAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def post(self, request, *args, **kwargs):
+        from rest_framework.response import Response
+        from rest_framework import status
+        
+        team_id = self.kwargs.get('team_id')
+        
+        try:
+            team = Team.objects.get(id=team_id)
+            
+            # 팀 소유자는 탈퇴할 수 없음 (팀을 삭제해야 함)
+            if team.owner == self.request.user:
+                return Response(
+                    {"detail": "팀 소유자는 탈퇴할 수 없습니다. 팀을 삭제하세요."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # 팀원인지 확인
+            try:
+                member = TeamMember.objects.get(team=team, user=self.request.user)
+                member.delete()
+                return Response(
+                    {"detail": "팀에서 탈퇴했습니다."},
+                    status=status.HTTP_200_OK
+                )
+            except TeamMember.DoesNotExist:
+                return Response(
+                    {"detail": "팀원이 아닙니다."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        except Team.DoesNotExist:
+            return Response(
+                {"detail": "팀을 찾을 수 없습니다."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+class TeamCancelJoinRequestView(generics.GenericAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def post(self, request, *args, **kwargs):
+        from rest_framework.response import Response
+        from rest_framework import status
+        
+        team_id = self.kwargs.get('team_id')
+        
+        try:
+            team = Team.objects.get(id=team_id)
+            
+            # 가입 신청이 있는지 확인
+            try:
+                join_request = TeamJoinRequest.objects.get(team=team, user=self.request.user, status='PENDING')
+                join_request.delete()
+                return Response(
+                    {"detail": "가입 신청이 취소되었습니다."},
+                    status=status.HTTP_200_OK
+                )
+            except TeamJoinRequest.DoesNotExist:
+                return Response(
+                    {"detail": "가입 신청이 없습니다."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        except Team.DoesNotExist:
+            return Response(
+                {"detail": "팀을 찾을 수 없습니다."},
                 status=status.HTTP_404_NOT_FOUND
             )

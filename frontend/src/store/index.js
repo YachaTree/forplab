@@ -57,12 +57,17 @@ const auth = {
       }
     },
     
-    async register(_, userData) {
+    async register({ commit }, userData) {
+      commit('SET_LOADING', true)
+      commit('SET_ERROR', null)
       try {
         const response = await authAPI.register(userData)
+        commit('SET_LOADING', false)
         return response
       } catch (error) {
         console.error('회원가입 실패:', error)
+        commit('SET_ERROR', error.message || '회원가입에 실패했습니다.')
+        commit('SET_LOADING', false)
         throw error
       }
     },
@@ -225,9 +230,11 @@ const teams = {
       }
     },
     
-    async acceptJoinRequest(_, { teamId, requestId }) {
+    async acceptJoinRequest({ dispatch }, { teamId, requestId }) {
       try {
         const response = await teamAPI.acceptJoinRequest(teamId, requestId)
+        // 가입 신청 승인 후 팀 정보 다시 조회
+        await dispatch('fetchTeam', teamId)
         return response
       } catch (error) {
         console.error('가입 신청 승인 실패:', error)
@@ -235,9 +242,11 @@ const teams = {
       }
     },
     
-    async rejectJoinRequest(_, { teamId, requestId }) {
+    async rejectJoinRequest({ dispatch }, { teamId, requestId }) {
       try {
         const response = await teamAPI.rejectJoinRequest(teamId, requestId)
+        // 가입 신청 거절 후 팀 정보 다시 조회
+        await dispatch('fetchTeam', teamId)
         return response
       } catch (error) {
         console.error('가입 신청 거절 실패:', error)
@@ -456,6 +465,21 @@ const store = createStore({
   getters: {
     isAuthenticated: state => state.auth.isAuthenticated,
     user: state => state.auth.user
+  },
+  // 루트 레벨 액션 (모듈 네임스페이스 없이 접근 가능)
+  actions: {
+    register({ dispatch }, userData) {
+      return dispatch('auth/register', userData);
+    },
+    login({ dispatch }, credentials) {
+      return dispatch('auth/login', credentials);
+    },
+    logout({ dispatch }) {
+      return dispatch('auth/logout');
+    },
+    fetchUserProfile({ dispatch }) {
+      return dispatch('auth/fetchUserProfile');
+    }
   }
 })
 

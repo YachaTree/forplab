@@ -68,7 +68,7 @@
           </div>
           
           <!-- 가입 신청 상태 (신청 중인 경우) -->
-          <div class="team-actions" v-if="hasJoinRequest">
+          <div class="team-actions" v-if="!isTeamMember && !isTeamLeader && hasJoinRequest">
             <div class="join-request-status">
               <i class="fas fa-hourglass-half"></i>
               <span>가입 신청 중</span>
@@ -102,11 +102,11 @@
           <div class="form-group">
             <label>포지션</label>
             <select v-model="joinRequestForm.position">
-              <option value="">포지션 선택</option>
-              <option value="GK">골키퍼 (GK)</option>
-              <option value="DF">수비수 (DF)</option>
-              <option value="MF">미드필더 (MF)</option>
-              <option value="FW">공격수 (FW)</option>
+              <option value="">선택</option>
+              <option value="GK">골키퍼</option>
+              <option value="DF">수비수</option>
+              <option value="MF">미드필더</option>
+              <option value="FW">공격수</option>
             </select>
           </div>
           
@@ -222,7 +222,7 @@
             
             <div class="request-actions">
               <button class="reject-btn" @click="rejectJoinRequest(request.id)">거절</button>
-              <button class="approve-btn" @click="approveJoinRequest(request.id)">승인</button>
+              <button class="approve-btn" @click="approveJoinRequest(request.id)">수락</button>
             </div>
           </div>
         </div>
@@ -261,11 +261,21 @@ export default {
     }),
     
     isTeamMember() {
-      if (!this.isAuthenticated || !this.team || !this.team.members || !this.user) {
+      if (!this.isAuthenticated || !this.team || !this.user) {
         return false;
       }
       
-      return this.team.members.some(member => member.id === this.user.id);
+      // 백엔드에서 제공하는 is_member 필드 사용
+      if (this.team.is_member !== undefined) {
+        return this.team.is_member;
+      }
+      
+      // 백엔드에서 is_member 필드를 제공하지 않는 경우 직접 확인
+      if (this.team.members) {
+        return this.team.members.some(member => member.user && member.user.id === this.user.id);
+      }
+      
+      return false;
     },
     
     isTeamLeader() {
@@ -300,11 +310,21 @@ export default {
     },
     
     hasJoinRequest() {
-      if (!this.isAuthenticated || !this.team || !this.team.join_requests || !this.user) {
+      if (!this.isAuthenticated || !this.team || !this.user) {
         return false;
       }
       
-      return this.team.join_requests.some(request => request.user.id === this.user.id);
+      // 백엔드에서 제공하는 has_join_request 필드 사용
+      if (this.team.has_join_request !== undefined) {
+        return this.team.has_join_request;
+      }
+      
+      // 백엔드에서 has_join_request 필드를 제공하지 않는 경우 직접 확인
+      if (this.team.join_requests) {
+        return this.team.join_requests.some(request => request.user.id === this.user.id);
+      }
+      
+      return false;
     }
   },
   
@@ -349,7 +369,10 @@ export default {
       try {
         await this.$store.dispatch('teams/joinTeam', {
           id: this.$route.params.id,
-          requestData: this.joinRequestForm
+          requestData: {
+            message: this.joinRequestForm.message,
+            position: this.joinRequestForm.position
+          }
         });
         
         // 가입 신청 성공 후 팀 정보 다시 조회
@@ -361,10 +384,28 @@ export default {
           position: ''
         };
         
-        alert('가입 신청이 성공적으로 등록되었습니다.');
+        alert('팀 가입 신청이 완료되었습니다.');
       } catch (error) {
         console.error('팀 가입 신청 실패:', error);
-        alert('가입 신청에 실패했습니다. 다시 시도해주세요.');
+        
+        // 이미 가입 신청한 경우 처리
+        if (error.response && error.response.status === 400 && 
+            error.response.data && error.response.data.detail) {
+          alert(error.response.data.detail);
+          this.showJoinRequestForm = false;
+          // 팀 정보 다시 조회하여 상태 업데이트
+          await this.fetchTeam();
+        } 
+        // 서버 오류인 경우 (500 에러)
+        else if (error.response && error.response.status === 500) {
+          alert('서버 오류가 발생했습니다. 팀 정보를 다시 불러옵니다.');
+          // 팀 정보 다시 불러오기
+          await this.fetchTeam();
+          this.showJoinRequestForm = false;
+        }
+        else {
+          alert('팀 가입 신청에 실패했습니다. 다시 시도해주세요.');
+        }
       } finally {
         this.joinRequestSubmitting = false;
       }
@@ -411,10 +452,29 @@ export default {
           requestId
         });
         await this.fetchTeam();
-        alert('가입 신청을 승인했습니다.');
+        alert('가입 신청을 수락했습니다.');
       } catch (error) {
-        console.error('가입 신청 승인 실패:', error);
-        alert('가입 신청 승인에 실패했습니다. 다시 시도해주세요.');
+        console.error('가입 신청 수락 실패:', error);
+        
+        // 이미 처리된 요청인 경우 (400 또는 404 에러)
+        if (error.response && (error.response.status === 404 || error.response.status === 400)) {
+          let message = '이미 처리된 가입 신청입니다.';
+          if (error.response.data && error.response.data.detail) {
+            message = error.response.data.detail;
+          }
+          alert(message);
+          // 팀 정보 다시 불러오기
+          await this.fetchTeam();
+        } 
+        // 서버 오류인 경우 (500 에러)
+        else if (error.response && error.response.status === 500) {
+          alert('서버 오류가 발생했습니다. 팀 정보를 다시 불러옵니다.');
+          // 팀 정보 다시 불러오기
+          await this.fetchTeam();
+        }
+        else {
+          alert('가입 신청 수락에 실패했습니다. 다시 시도해주세요.');
+        }
       }
     },
     
@@ -428,7 +488,26 @@ export default {
         alert('가입 신청을 거절했습니다.');
       } catch (error) {
         console.error('가입 신청 거절 실패:', error);
-        alert('가입 신청 거절에 실패했습니다. 다시 시도해주세요.');
+        
+        // 이미 처리된 요청인 경우 (400 또는 404 에러)
+        if (error.response && (error.response.status === 404 || error.response.status === 400)) {
+          let message = '이미 처리된 가입 신청입니다.';
+          if (error.response.data && error.response.data.detail) {
+            message = error.response.data.detail;
+          }
+          alert(message);
+          // 팀 정보 다시 불러오기
+          await this.fetchTeam();
+        } 
+        // 서버 오류인 경우 (500 에러)
+        else if (error.response && error.response.status === 500) {
+          alert('서버 오류가 발생했습니다. 팀 정보를 다시 불러옵니다.');
+          // 팀 정보 다시 불러오기
+          await this.fetchTeam();
+        }
+        else {
+          alert('가입 신청 거절에 실패했습니다. 다시 시도해주세요.');
+        }
       }
     },
     
@@ -934,6 +1013,10 @@ export default {
   margin-bottom: 10px;
 }
 
+.request-message {
+  margin-bottom: 10px;
+}
+
 .detail-label {
   font-weight: 500;
   color: #333;
@@ -942,11 +1025,6 @@ export default {
 
 .detail-value {
   color: #555;
-}
-
-.request-message p {
-  margin: 5px 0 0;
-  line-height: 1.5;
 }
 
 .request-actions {

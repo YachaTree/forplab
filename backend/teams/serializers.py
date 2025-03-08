@@ -18,10 +18,11 @@ class TeamMemberSerializer(serializers.ModelSerializer):
     """
     user = UserSimpleSerializer(read_only=True)
     role_display = serializers.CharField(source='get_role_display', read_only=True)
+    position_display = serializers.CharField(source='get_position_display', read_only=True)
     
     class Meta:
         model = TeamMember
-        fields = ('id', 'user', 'role', 'role_display', 'joined_at')
+        fields = ('id', 'user', 'role', 'role_display', 'position', 'position_display', 'joined_at')
 
 class TeamJoinRequestSerializer(serializers.ModelSerializer):
     """
@@ -29,31 +30,12 @@ class TeamJoinRequestSerializer(serializers.ModelSerializer):
     """
     user = UserSimpleSerializer(read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
+    position_display = serializers.CharField(source='get_position_display', read_only=True)
     
     class Meta:
         model = TeamJoinRequest
-        fields = ('id', 'user', 'message', 'status', 'status_display', 'created_at')
+        fields = ('id', 'user', 'message', 'position', 'position_display', 'status', 'status_display', 'created_at')
         read_only_fields = ('user', 'status')
-    
-    def create(self, validated_data):
-        user = self.context['request'].user
-        team_id = self.context['team_id']
-        team = Team.objects.get(id=team_id)
-        
-        # 이미 팀 멤버인지 확인
-        if TeamMember.objects.filter(team=team, user=user).exists():
-            raise serializers.ValidationError("이미 팀의 멤버입니다.")
-        
-        # 이미 가입 요청을 보냈는지 확인
-        if TeamJoinRequest.objects.filter(team=team, user=user, status='PENDING').exists():
-            raise serializers.ValidationError("이미 가입 요청을 보냈습니다.")
-        
-        request = TeamJoinRequest.objects.create(
-            user=user,
-            team=team,
-            **validated_data
-        )
-        return request
 
 class TeamSerializer(serializers.ModelSerializer):
     """
@@ -88,6 +70,7 @@ class TeamDetailSerializer(serializers.ModelSerializer):
     goal_difference = serializers.IntegerField(read_only=True)
     is_member = serializers.SerializerMethodField()
     is_owner = serializers.SerializerMethodField()
+    has_join_request = serializers.SerializerMethodField()
     
     class Meta:
         model = Team
@@ -95,7 +78,7 @@ class TeamDetailSerializer(serializers.ModelSerializer):
                   'region', 'region_display', 'is_recruiting',
                   'rating', 'owner', 'members', 'join_requests', 'matches_played',
                   'wins', 'draws', 'losses', 'goals_scored', 'goals_conceded',
-                  'win_rate', 'goal_difference', 'is_member', 'is_owner',
+                  'win_rate', 'goal_difference', 'is_member', 'is_owner', 'has_join_request',
                   'created_at', 'updated_at')
     
     def get_members(self, obj):
@@ -113,12 +96,22 @@ class TeamDetailSerializer(serializers.ModelSerializer):
     def get_is_member(self, obj):
         user = self.context['request'].user
         if user.is_authenticated:
-            return TeamMember.objects.filter(team=obj, user=user).exists()
+            is_member = TeamMember.objects.filter(team=obj, user=user).exists()
+            print(f"사용자 {user.id}({user.username})의 팀 {obj.id}({obj.name}) 멤버십 확인: {is_member}")
+            return is_member
         return False
     
     def get_is_owner(self, obj):
         user = self.context['request'].user
         return user == obj.owner
+    
+    def get_has_join_request(self, obj):
+        user = self.context['request'].user
+        if user.is_authenticated:
+            has_request = TeamJoinRequest.objects.filter(team=obj, user=user, status='PENDING').exists()
+            print(f"사용자 {user.id}({user.username})의 팀 {obj.id}({obj.name}) 가입 신청 확인: {has_request}")
+            return has_request
+        return False
 
 class TeamCreateSerializer(serializers.ModelSerializer):
     """
