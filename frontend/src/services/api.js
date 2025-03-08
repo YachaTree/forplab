@@ -145,7 +145,12 @@ export const authAPI = {
     }
     
     // multipart/form-data는 axios가 자동으로 설정하므로 Content-Type 헤더를 명시적으로 설정하지 않음
-    return apiClient.put('/users/profile/update/', profileData);
+    // 하지만 일부 브라우저에서는 명시적으로 설정해야 할 수 있음
+    const headers = {
+      'Content-Type': 'multipart/form-data'
+    };
+    
+    return apiClient.put('/users/profile/update/', profileData, { headers });
   },
 };
 
