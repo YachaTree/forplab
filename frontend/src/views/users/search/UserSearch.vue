@@ -99,7 +99,10 @@ export default {
     return {
       searchQuery: '',
       skillLevel: '',
-      hasSearched: false
+      hasSearched: false,
+      debounceTimeout: null,
+      searchCache: {}, // 검색 결과 캐싱
+      lastSearchParams: null // 마지막 검색 파라미터
     };
   },
   
@@ -108,7 +111,38 @@ export default {
       searchResults: state => state.auth.searchResults,
       searchLoading: state => state.auth.searchLoading,
       searchError: state => state.auth.searchError
-    })
+    }),
+    
+    // 검색 파라미터 생성
+    searchParams() {
+      const params = {};
+      
+      if (this.searchQuery) {
+        params.search = this.searchQuery;
+      }
+      
+      if (this.skillLevel) {
+        params.skill_level = this.skillLevel;
+      }
+      
+      return params;
+    },
+    
+    // 캐시 키 생성
+    cacheKey() {
+      return `${this.searchQuery || ''}_${this.skillLevel || ''}`;
+    }
+  },
+  
+  watch: {
+    // 검색어나 필터가 변경되면 디바운스 검색 실행
+    searchQuery() {
+      this.debouncedSearch();
+    },
+    
+    skillLevel() {
+      this.debouncedSearch();
+    }
   },
   
   methods: {
@@ -116,25 +150,53 @@ export default {
       searchUsersAction: 'auth/searchUsers'
     }),
     
+    // 디바운스 검색 (입력이 끝난 후 일정 시간이 지나면 검색 실행)
+    debouncedSearch() {
+      // 이전 타이머 취소
+      if (this.debounceTimeout) {
+        clearTimeout(this.debounceTimeout);
+      }
+      
+      // 검색어가 비어있으면 검색하지 않음
+      if (!this.searchQuery && !this.skillLevel) {
+        return;
+      }
+      
+      // 새 타이머 설정 (500ms 후 검색 실행)
+      this.debounceTimeout = setTimeout(() => {
+        this.searchUsers();
+      }, 500);
+    },
+    
     async searchUsers() {
+      // 검색어와 필터가 모두 비어있으면 검색하지 않음
       if (!this.searchQuery && !this.skillLevel) {
         alert('검색어 또는 필터를 입력해주세요.');
         return;
       }
       
       try {
-        const params = {};
+        // 캐시 키 생성
+        const key = this.cacheKey;
         
-        if (this.searchQuery) {
-          params.search = this.searchQuery;
+        // 캐시에 결과가 있으면 캐시된 결과 사용
+        if (this.searchCache[key]) {
+          console.log('캐시된 검색 결과 사용:', key);
+          this.$store.commit('auth/SET_SEARCH_RESULTS', this.searchCache[key]);
+          this.hasSearched = true;
+          return;
         }
         
-        if (this.skillLevel) {
-          params.skill_level = this.skillLevel;
-        }
+        // 캐시에 없으면 API 호출
+        const params = this.searchParams;
+        this.lastSearchParams = params;
         
-        await this.searchUsersAction(params);
+        const response = await this.searchUsersAction(params);
         this.hasSearched = true;
+        
+        // 검색 결과 캐싱
+        this.searchCache[key] = response.data;
+        console.log('검색 결과 캐싱:', key);
       } catch (error) {
         console.error('사용자 검색 실패:', error);
       }

@@ -498,9 +498,95 @@ export default {
         return;
       }
       
-      // 파일 객체 저장
-      this.editForm.profile_image = file;
-      console.log('이미지 파일 선택됨:', file.name, file.type, file.size);
+      // 이미지 최적화 (크기 조정 및 압축)
+      this.optimizeImage(file).then(optimizedFile => {
+        // 파일 객체 저장
+        this.editForm.profile_image = optimizedFile;
+        console.log('이미지 파일 최적화 완료:', optimizedFile.name, optimizedFile.type, optimizedFile.size);
+      }).catch(error => {
+        console.error('이미지 최적화 실패:', error);
+        // 최적화 실패 시 원본 파일 사용
+        this.editForm.profile_image = file;
+        console.log('원본 이미지 파일 사용:', file.name, file.type, file.size);
+      });
+    },
+    
+    optimizeImage(file) {
+      return new Promise((resolve, reject) => {
+        // 이미지 로드
+        const img = new Image();
+        img.onload = () => {
+          // 최대 크기 설정 (가로/세로 최대 1200px)
+          const maxWidth = 1200;
+          const maxHeight = 1200;
+          
+          let width = img.width;
+          let height = img.height;
+          
+          // 이미지 크기 조정
+          if (width > maxWidth || height > maxHeight) {
+            if (width > height) {
+              height = Math.round(height * (maxWidth / width));
+              width = maxWidth;
+            } else {
+              width = Math.round(width * (maxHeight / height));
+              height = maxHeight;
+            }
+          }
+          
+          // 캔버스 생성
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          
+          // 이미지 그리기
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          // 이미지 압축 및 변환
+          const quality = 0.8; // 80% 품질
+          
+          // 파일 형식에 따라 압축 방식 결정
+          let mimeType = file.type;
+          if (file.type === 'image/png') {
+            mimeType = 'image/jpeg'; // PNG는 JPEG로 변환하여 더 작은 파일 크기로 압축
+          }
+          
+          // 캔버스를 Blob으로 변환
+          canvas.toBlob(blob => {
+            if (!blob) {
+              reject(new Error('이미지 변환 실패'));
+              return;
+            }
+            
+            // 파일명 생성
+            const timestamp = new Date().getTime();
+            const extension = mimeType === 'image/jpeg' ? '.jpg' : 
+                             mimeType === 'image/png' ? '.png' : 
+                             mimeType === 'image/gif' ? '.gif' : '.jpg';
+            const fileName = `profile_${timestamp}${extension}`;
+            
+            // Blob을 File 객체로 변환
+            const optimizedFile = new File([blob], fileName, { type: mimeType });
+            
+            resolve(optimizedFile);
+          }, mimeType, quality);
+        };
+        
+        img.onerror = () => {
+          reject(new Error('이미지 로드 실패'));
+        };
+        
+        // 파일을 Data URL로 변환하여 이미지 로드
+        const reader = new FileReader();
+        reader.onload = e => {
+          img.src = e.target.result;
+        };
+        reader.onerror = () => {
+          reject(new Error('파일 읽기 실패'));
+        };
+        reader.readAsDataURL(file);
+      });
     },
     
     async loadUserTeams() {
