@@ -16,8 +16,20 @@ urlpatterns = [
     path('profile/update/', views.UserProfileUpdateView.as_view(), name='profile_update'),
     path('profile/<str:username>/', views.UserDetailView.as_view(), name='user_detail'),
     
+    # 사용자 검색 API
+    path('search/', views.UserSearchView.as_view(), name='user_search'),
+    
     # 사용자 ID로 프로필 조회
     path('<int:pk>/', views.UserDetailByIdView.as_view(), name='user_detail_by_id'),
     path('<int:pk>/teams/', views.UserTeamsView.as_view(), name='user_teams'),
     path('<int:pk>/matches/', views.UserMatchesView.as_view(), name='user_matches'),
+    
+    # 친구 관련 URL
+    path('friends/', views.FriendshipListView.as_view(), name='friend_list'),
+    path('friends/requests/', views.FriendRequestListView.as_view(), name='friend_request_list'),
+    path('friends/requests/sent/', views.FriendRequestSentListView.as_view(), name='friend_request_sent_list'),
+    path('friends/requests/create/', views.FriendRequestCreateView.as_view(), name='friend_request_create'),
+    path('friends/requests/<int:pk>/accept/', views.FriendRequestAcceptView.as_view(), name='friend_request_accept'),
+    path('friends/requests/<int:pk>/reject/', views.FriendRequestRejectView.as_view(), name='friend_request_reject'),
+    path('friends/<int:pk>/delete/', views.FriendshipDeleteView.as_view(), name='friendship_delete'),
 ] 

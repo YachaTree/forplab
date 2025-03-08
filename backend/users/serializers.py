@@ -2,6 +2,7 @@ from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
+from .models import Friendship
 
 User = get_user_model()
 
@@ -107,3 +108,66 @@ class PasswordChangeSerializer(serializers.Serializer):
             raise serializers.ValidationError({"new_password": e.messages})
         
         return data 
+
+class FriendshipSerializer(serializers.ModelSerializer):
+    """
+    친구 관계 시리얼라이저
+    """
+    from_user = UserSerializer(read_only=True)
+    to_user = UserSerializer(read_only=True)
+    
+    class Meta:
+        model = Friendship
+        fields = ('id', 'from_user', 'to_user', 'status', 'created_at', 'updated_at')
+        read_only_fields = ('created_at', 'updated_at')
+
+class FriendshipCreateSerializer(serializers.ModelSerializer):
+    """
+    친구 요청 생성 시리얼라이저
+    """
+    to_user_id = serializers.IntegerField(write_only=True)
+    
+    class Meta:
+        model = Friendship
+        fields = ('id', 'to_user_id', 'status')
+        read_only_fields = ('status',)
+    
+    def validate_to_user_id(self, value):
+        # 자기 자신에게 친구 요청을 보낼 수 없음
+        if self.context['request'].user.id == value:
+            raise serializers.ValidationError("자기 자신에게 친구 요청을 보낼 수 없습니다.")
+        
+        # 존재하는 사용자인지 확인
+        try:
+            User.objects.get(id=value)
+        except User.DoesNotExist:
+            raise serializers.ValidationError("존재하지 않는 사용자입니다.")
+        
+        # 이미 친구 요청을 보냈는지 확인
+        if Friendship.objects.filter(
+            from_user=self.context['request'].user,
+            to_user_id=value
+        ).exists():
+            raise serializers.ValidationError("이미 친구 요청을 보냈습니다.")
+        
+        # 상대방이 이미 친구 요청을 보냈는지 확인
+        if Friendship.objects.filter(
+            from_user_id=value,
+            to_user=self.context['request'].user
+        ).exists():
+            raise serializers.ValidationError("상대방이 이미 친구 요청을 보냈습니다.")
+        
+        return value
+    
+    def create(self, validated_data):
+        from_user = self.context['request'].user
+        to_user_id = validated_data.pop('to_user_id')
+        to_user = User.objects.get(id=to_user_id)
+        
+        friendship = Friendship.objects.create(
+            from_user=from_user,
+            to_user=to_user,
+            status='PENDING'
+        )
+        
+        return friendship 

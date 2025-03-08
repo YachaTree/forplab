@@ -3,6 +3,49 @@ import axios from 'axios';
 // API 기본 URL 설정
 const API_URL = 'http://localhost:8000/api/v1';
 
+// 캐시 설정
+const CACHE_DURATION = 5 * 60 * 1000; // 5분 (밀리초)
+const apiCache = {
+  data: {},
+  
+  // 캐시에 데이터 저장
+  set(key, data) {
+    this.data[key] = {
+      data,
+      timestamp: Date.now()
+    };
+  },
+  
+  // 캐시에서 데이터 가져오기
+  get(key) {
+    const cached = this.data[key];
+    if (!cached) return null;
+    
+    // 캐시 만료 확인
+    const now = Date.now();
+    if (now - cached.timestamp > CACHE_DURATION) {
+      delete this.data[key];
+      return null;
+    }
+    
+    return cached.data;
+  },
+  
+  // 캐시 키 생성
+  createKey(method, url, params) {
+    return `${method}:${url}:${JSON.stringify(params || {})}`;
+  },
+  
+  // 특정 패턴의 캐시 무효화
+  invalidate(pattern) {
+    for (const key in this.data) {
+      if (key.includes(pattern)) {
+        delete this.data[key];
+      }
+    }
+  }
+};
+
 // axios 인스턴스 생성
 const apiClient = axios.create({
   baseURL: API_URL,
@@ -18,6 +61,29 @@ apiClient.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    
+    // 캐싱 설정
+    if (config.method === 'get' && config.cache !== false) {
+      const cacheKey = apiCache.createKey(config.method, config.url, config.params);
+      const cachedData = apiCache.get(cacheKey);
+      
+      if (cachedData) {
+        console.log('캐시된 데이터 사용:', cacheKey);
+        
+        // 캐시된 데이터가 있으면 요청 취소하고 캐시된 데이터 반환
+        config.adapter = () => {
+          return Promise.resolve({
+            data: cachedData,
+            status: 200,
+            statusText: 'OK',
+            headers: {},
+            config,
+            request: {}
+          });
+        };
+      }
+    }
+    
     return config;
   },
   (error) => {
@@ -25,9 +91,21 @@ apiClient.interceptors.request.use(
   }
 );
 
-// 응답 인터셉터 - 토큰 만료 처리
+// 응답 인터셉터 - 토큰 만료 처리 및 캐싱
 apiClient.interceptors.response.use(
   (response) => {
+    // GET 요청 결과 캐싱
+    if (response.config.method === 'get' && response.config.cache !== false) {
+      const cacheKey = apiCache.createKey(
+        response.config.method,
+        response.config.url,
+        response.config.params
+      );
+      
+      apiCache.set(cacheKey, response.data);
+      console.log('응답 데이터 캐싱:', cacheKey);
+    }
+    
     return response;
   },
   async (error) => {
@@ -150,7 +228,26 @@ export const authAPI = {
       'Content-Type': 'multipart/form-data'
     };
     
-    return apiClient.put('/users/profile/update/', profileData, { headers });
+    // 프로필 업데이트 후 관련 캐시 무효화
+    return apiClient.put('/users/profile/update/', profileData, { headers })
+      .then(response => {
+        // 사용자 관련 캐시 무효화
+        apiCache.invalidate('/users/profile');
+        apiCache.invalidate(`/users/${response.data.user.id}`);
+        return response;
+      });
+  },
+  searchUsers(params) {
+    console.log('사용자 검색 요청:', params);
+    return apiClient.get('/users/search/', { params })
+      .then(response => {
+        console.log('사용자 검색 응답:', response.data);
+        return response;
+      })
+      .catch(error => {
+        console.error('사용자 검색 실패:', error.response ? error.response.data : error.message);
+        throw error;
+      });
   },
 };
 
@@ -254,6 +351,35 @@ export const teamAPI = {
   rejectJoinRequest(teamId, requestId) {
     return apiClient.post(`/teams/${teamId}/join-requests/${requestId}/reject/`);
   },
+};
+
+// 친구 관련 API
+export const getFriends = async () => {
+  return await apiClient.get('/users/friends/');
+};
+
+export const getFriendRequests = async () => {
+  return await apiClient.get('/users/friends/requests/');
+};
+
+export const getSentFriendRequests = async () => {
+  return await apiClient.get('/users/friends/requests/sent/');
+};
+
+export const sendFriendRequest = async (toUserId) => {
+  return await apiClient.post('/users/friends/requests/create/', { to_user_id: toUserId });
+};
+
+export const acceptFriendRequest = async (requestId) => {
+  return await apiClient.put(`/users/friends/requests/${requestId}/accept/`);
+};
+
+export const rejectFriendRequest = async (requestId) => {
+  return await apiClient.put(`/users/friends/requests/${requestId}/reject/`);
+};
+
+export const deleteFriendship = async (friendshipId) => {
+  return await apiClient.delete(`/users/friends/${friendshipId}/delete/`);
 };
 
 export default apiClient; 

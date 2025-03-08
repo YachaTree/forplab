@@ -6,9 +6,21 @@
       </div>
       
       <div class="navbar-links">
-        <router-link to="/matches" class="nav-link">매치</router-link>
-        <router-link to="/venues" class="nav-link">구장</router-link>
-        <router-link to="/teams" class="nav-link">팀</router-link>
+        <router-link to="/matches" class="nav-link">
+          <i class="fas fa-futbol"></i> 매치
+        </router-link>
+        <router-link to="/venues" class="nav-link">
+          <i class="fas fa-map-marker-alt"></i> 구장
+        </router-link>
+        <router-link to="/teams" class="nav-link">
+          <i class="fas fa-users"></i> 팀
+        </router-link>
+        <router-link to="/users/search" class="nav-link">
+          <i class="fas fa-search"></i> 사용자 검색
+        </router-link>
+        <router-link to="/friends" class="nav-link">
+          <i class="fas fa-user-friends"></i> 친구
+        </router-link>
       </div>
       
       <div class="navbar-actions">
@@ -31,6 +43,12 @@
               </router-link>
               <router-link to="/my-teams" class="dropdown-item">
                 <i class="fas fa-users"></i> 내 팀
+              </router-link>
+              <router-link to="/users/search" class="dropdown-item">
+                <i class="fas fa-search"></i> 사용자 검색
+              </router-link>
+              <router-link to="/friends" class="dropdown-item">
+                <i class="fas fa-user-friends"></i> 친구 관리
               </router-link>
               <div class="dropdown-divider"></div>
               <a href="#" class="dropdown-item" @click.prevent="logout">
@@ -134,11 +152,24 @@ export default {
   font-weight: 500;
   padding: 8px 12px;
   border-radius: 4px;
-  transition: background-color 0.2s;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .nav-link:hover {
   background-color: #f5f5f5;
+  color: var(--primary-color);
+}
+
+.nav-link.router-link-active {
+  color: var(--primary-color);
+  background-color: var(--primary-light);
+}
+
+.nav-link i {
+  font-size: 16px;
 }
 
 .navbar-actions {
@@ -253,7 +284,17 @@ export default {
 
 @media (max-width: 768px) {
   .navbar-links {
-    display: none;
+    display: flex;
+    position: fixed;
+    top: 70px;
+    left: 0;
+    right: 0;
+    background-color: white;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    padding: 10px;
+    overflow-x: auto;
+    white-space: nowrap;
+    z-index: 999;
   }
   
   .create-match-btn span {

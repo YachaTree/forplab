@@ -14,6 +14,8 @@ import TeamList from '../views/teams/TeamList.vue'
 import TeamDetail from '../views/teams/TeamDetail.vue'
 import TeamCreate from '../views/teams/TeamCreate.vue'
 import TeamManage from '../views/teams/TeamManage.vue'
+import UserSearch from '@/views/users/UserSearch.vue'
+import Friends from '@/views/users/Friends.vue'
 
 // 임시 컴포넌트 (나중에 구현 예정)
 const NotFound = { template: '<div>페이지를 찾을 수 없습니다.</div>' };
@@ -98,6 +100,18 @@ const routes = [
     path: '/users/:id',
     name: 'UserProfile',
     component: () => import('../views/users/Profile.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/users/search',
+    name: 'UserSearch',
+    component: UserSearch,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/friends',
+    name: 'Friends',
+    component: Friends,
     meta: { requiresAuth: true }
   },
   {
