@@ -372,27 +372,16 @@ export default {
         
         // 이미지가 있는 경우 추가
         if (this.editForm.profile_image) {
-          // 파일 이름에 확장자가 없는 경우 추가
-          const fileName = this.editForm.profile_image.name;
-          const fileType = this.editForm.profile_image.type;
-          
-          // 파일 타입에 따라 확장자 결정
-          let extension = '';
-          if (fileType === 'image/jpeg' || fileType === 'image/jpg') extension = '.jpg';
-          else if (fileType === 'image/png') extension = '.png';
-          else if (fileType === 'image/gif') extension = '.gif';
-          
-          // 파일 이름에 확장자가 없으면 추가
-          const finalFileName = fileName.includes('.') ? fileName : fileName + extension;
-          
-          // 파일 객체를 새로 생성하여 이름 변경
-          const renamedFile = new File([this.editForm.profile_image], finalFileName, { type: fileType });
-          
-          formData.append('profile_image', renamedFile);
-          console.log('이미지 파일 추가:', finalFileName, fileType);
+          // 원본 파일을 그대로 사용
+          formData.append('profile_image', this.editForm.profile_image);
+          console.log('이미지 파일 추가:', this.editForm.profile_image.name, this.editForm.profile_image.type);
         }
         
-        console.log('프로필 업데이트 요청 데이터:', Object.fromEntries(formData.entries()));
+        // FormData 내용 디버깅
+        console.log('FormData 내용:');
+        for (let [key, value] of formData.entries()) {
+          console.log(`${key}: ${value instanceof File ? `${value.name} (${value.type}, ${value.size} bytes)` : value}`);
+        }
         
         // 프로필 업데이트 요청
         const response = await this.updateProfile(formData);
