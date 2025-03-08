@@ -23,7 +23,7 @@
             <i class="fas fa-chevron-down"></i>
             
             <div class="dropdown-menu" v-show="showUserMenu">
-              <router-link to="/profile" class="dropdown-item">
+              <router-link :to="'/users/' + (user ? user.id : '')" class="dropdown-item">
                 <i class="fas fa-user"></i> 프로필
               </router-link>
               <router-link to="/my-matches" class="dropdown-item">

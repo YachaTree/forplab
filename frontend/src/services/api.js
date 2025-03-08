@@ -115,6 +115,15 @@ export const authAPI = {
   getProfile() {
     return apiClient.get('/users/profile/');
   },
+  getUserProfile(userId) {
+    return apiClient.get(`/users/${userId}/`);
+  },
+  getUserTeams(userId) {
+    return apiClient.get(`/users/${userId}/teams/`);
+  },
+  getUserMatches(userId) {
+    return apiClient.get(`/users/${userId}/matches/`);
+  },
   updateProfile(profileData) {
     return apiClient.put('/users/profile/update/', profileData);
   },
