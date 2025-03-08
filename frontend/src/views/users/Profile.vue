@@ -254,6 +254,12 @@ export default {
     }),
     
     isCurrentUser() {
+      // /profile 경로인 경우 항상 현재 사용자로 간주
+      if (this.$route.path === '/profile') {
+        return true;
+      }
+      
+      // 사용자 ID로 비교
       return this.user && this.user.id === parseInt(this.$route.params.id);
     },
     

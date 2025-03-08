@@ -116,7 +116,16 @@ export const authAPI = {
     return apiClient.get('/users/profile/');
   },
   getUserProfile(userId) {
-    return apiClient.get(`/users/${userId}/`);
+    console.log('API 호출: getUserProfile, userId:', userId);
+    return apiClient.get(`/users/${userId}/`)
+      .then(response => {
+        console.log('getUserProfile 응답:', response.data);
+        return response;
+      })
+      .catch(error => {
+        console.error('getUserProfile 에러:', error.response ? error.response.data : error.message);
+        throw error;
+      });
   },
   getUserTeams(userId) {
     return apiClient.get(`/users/${userId}/teams/`);

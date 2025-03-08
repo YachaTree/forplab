@@ -106,9 +106,13 @@ const auth = {
       commit('SET_LOADING', true)
       commit('SET_ERROR', null)
       try {
+        console.log('getUserProfile 액션 호출됨, userId:', userId);
         const response = await authAPI.getUserProfile(userId)
-        // 다른 사용자의 프로필을 조회하는 경우에는 현재 로그인한 사용자 정보를 덮어쓰지 않음
-        // commit('SET_USER', response.data)
+        console.log('getUserProfile 응답:', response.data);
+        
+        // 사용자 정보를 state에 설정
+        commit('SET_USER', response.data)
+        
         commit('SET_LOADING', false)
         return response
       } catch (error) {
