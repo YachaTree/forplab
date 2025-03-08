@@ -186,15 +186,32 @@
                 <div class="requester-details">
                   <h3 class="requester-name">{{ request.user.username }}</h3>
                   <div class="request-date">신청일: {{ formatDate(request.created_at) }}</div>
+                  <div class="request-position">
+                    <span class="detail-label">포지션:</span>
+                    <span class="detail-value">{{ getPositionText(request.position) }}</span>
+                  </div>
                   <div class="request-message">
+                    <span class="detail-label">자기소개:</span>
                     <p>{{ request.message }}</p>
                   </div>
                 </div>
               </div>
               
               <div class="request-actions">
-                <button class="accept-btn" @click="acceptJoinRequest(request)">수락</button>
-                <button class="reject-btn" @click="rejectJoinRequest(request)">거절</button>
+                <button 
+                  class="accept-btn" 
+                  @click="acceptJoinRequest(request)"
+                  :disabled="request.processing"
+                >
+                  {{ request.processing ? '처리 중...' : '수락' }}
+                </button>
+                <button 
+                  class="reject-btn" 
+                  @click="rejectJoinRequest(request)"
+                  :disabled="request.processing"
+                >
+                  {{ request.processing ? '처리 중...' : '거절' }}
+                </button>
               </div>
             </div>
           </div>
@@ -365,30 +382,90 @@ export default {
     },
     
     async acceptJoinRequest(request) {
+      // 처리 중 상태로 설정
+      request.processing = true;
+      
       try {
         await this.acceptJoinRequestAction({
           teamId: this.team.id,
           requestId: request.id
-        })
+        });
         
-        alert(`${request.user.username}님의 가입 신청이 수락되었습니다.`)
+        // 팀 정보 다시 불러오기
+        await this.fetchTeam();
+        
+        alert(`${request.user.username}님의 가입 신청이 수락되었습니다.`);
       } catch (error) {
-        console.error('가입 신청 수락 실패:', error)
-        alert('가입 신청 수락에 실패했습니다. 다시 시도해주세요.')
+        console.error('가입 신청 수락 실패:', error);
+        
+        // 이미 처리된 요청인 경우 (400 또는 404 에러)
+        if (error.response && (error.response.status === 404 || error.response.status === 400)) {
+          let message = '이미 처리된 가입 신청입니다.';
+          if (error.response.data && error.response.data.detail) {
+            message = error.response.data.detail;
+          }
+          alert(message);
+          // 팀 정보 다시 불러오기
+          await this.fetchTeam();
+        } 
+        // 서버 오류인 경우 (500 에러)
+        else if (error.response && error.response.status === 500) {
+          alert('서버 오류가 발생했습니다. 팀 정보를 다시 불러옵니다.');
+          // 팀 정보 다시 불러오기
+          await this.fetchTeam();
+        }
+        else {
+          alert('가입 신청 수락에 실패했습니다. 다시 시도해주세요.');
+        }
+      } finally {
+        // 처리 중 상태 해제
+        if (request) {
+          request.processing = false;
+        }
       }
     },
     
     async rejectJoinRequest(request) {
+      // 처리 중 상태로 설정
+      request.processing = true;
+      
       try {
         await this.rejectJoinRequestAction({
           teamId: this.team.id,
           requestId: request.id
-        })
+        });
         
-        alert(`${request.user.username}님의 가입 신청이 거절되었습니다.`)
+        // 팀 정보 다시 불러오기
+        await this.fetchTeam();
+        
+        alert(`${request.user.username}님의 가입 신청이 거절되었습니다.`);
       } catch (error) {
-        console.error('가입 신청 거절 실패:', error)
-        alert('가입 신청 거절에 실패했습니다. 다시 시도해주세요.')
+        console.error('가입 신청 거절 실패:', error);
+        
+        // 이미 처리된 요청인 경우 (400 또는 404 에러)
+        if (error.response && (error.response.status === 404 || error.response.status === 400)) {
+          let message = '이미 처리된 가입 신청입니다.';
+          if (error.response.data && error.response.data.detail) {
+            message = error.response.data.detail;
+          }
+          alert(message);
+          // 팀 정보 다시 불러오기
+          await this.fetchTeam();
+        } 
+        // 서버 오류인 경우 (500 에러)
+        else if (error.response && error.response.status === 500) {
+          alert('서버 오류가 발생했습니다. 팀 정보를 다시 불러옵니다.');
+          // 팀 정보 다시 불러오기
+          await this.fetchTeam();
+        }
+        else {
+          alert('가입 신청 거절에 실패했습니다. 다시 시도해주세요.');
+        }
+      } finally {
+        // 처리 중 상태 해제
+        if (request) {
+          request.processing = false;
+        }
       }
     },
     
@@ -398,12 +475,12 @@ export default {
     
     getLevelValue(level) {
       const levelMap = {
-        'BEG': 'beginner',
-        'INT': 'intermediate',
-        'ADV': 'advanced',
-        'PRO': 'professional'
+        '입문': 'beginner',
+        '중급': 'intermediate',
+        '고급': 'advanced'
       }
-      return levelMap[level] || 'beginner'
+      
+      return levelMap[level] || level
     },
     
     getLevelText(level) {
@@ -418,6 +495,17 @@ export default {
         'professional': '프로'
       }
       return levelMap[level] || '입문'
+    },
+    
+    getPositionText(position) {
+      const positionMap = {
+        'GK': '골키퍼',
+        'DF': '수비수',
+        'MF': '미드필더',
+        'FW': '공격수'
+      }
+      
+      return positionMap[position] || position
     },
     
     getRoleText(role) {
@@ -733,6 +821,18 @@ export default {
   color: #999;
   font-size: 12px;
   margin-bottom: 10px;
+}
+
+.request-position {
+  margin-bottom: 10px;
+}
+
+.detail-label {
+  font-weight: bold;
+}
+
+.detail-value {
+  margin-left: 5px;
 }
 
 .request-message {

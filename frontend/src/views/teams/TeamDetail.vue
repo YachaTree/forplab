@@ -390,13 +390,20 @@ export default {
         
         // 이미 가입 신청한 경우 처리
         if (error.response && error.response.status === 400 && 
-            error.response.data && error.response.data.detail && 
-            error.response.data.detail.includes('이미 가입 신청')) {
-          alert('이미 가입 신청을 했습니다.');
+            error.response.data && error.response.data.detail) {
+          alert(error.response.data.detail);
           this.showJoinRequestForm = false;
           // 팀 정보 다시 조회하여 상태 업데이트
           await this.fetchTeam();
-        } else {
+        } 
+        // 서버 오류인 경우 (500 에러)
+        else if (error.response && error.response.status === 500) {
+          alert('서버 오류가 발생했습니다. 팀 정보를 다시 불러옵니다.');
+          // 팀 정보 다시 불러오기
+          await this.fetchTeam();
+          this.showJoinRequestForm = false;
+        }
+        else {
           alert('팀 가입 신청에 실패했습니다. 다시 시도해주세요.');
         }
       } finally {
