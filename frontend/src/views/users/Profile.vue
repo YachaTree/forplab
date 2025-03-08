@@ -454,6 +454,7 @@ export default {
         return;
       }
       
+      // 파일 객체 저장
       this.editForm.profile_image = file;
       console.log('이미지 파일 선택됨:', file.name, file.type, file.size);
     },
