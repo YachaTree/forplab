@@ -163,11 +163,18 @@ export default {
     
     // 회원가입 처리
     const handleRegister = async () => {
-      const success = await store.dispatch('auth/register', formData);
-      
-      if (success) {
-        // 회원가입 성공 시 로그인 페이지로 이동
-        router.push('/login');
+      try {
+        console.log('회원가입 시도:', formData);
+        
+        // 루트 레벨 액션 호출
+        const success = await store.dispatch('register', formData);
+        
+        if (success) {
+          // 회원가입 성공 시 로그인 페이지로 이동
+          router.push('/login');
+        }
+      } catch (error) {
+        console.error('회원가입 실패:', error);
       }
     };
     

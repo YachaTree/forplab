@@ -172,7 +172,7 @@ SIMPLE_JWT = {
 
 # CORS 설정
 CORS_ALLOW_ALL_ORIGINS = DEBUG  # 개발 환경에서만 모든 오리진 허용
-CORS_ALLOWED_ORIGINS = os.getenv('CORS_ALLOWED_ORIGINS', 'http://localhost:8080').split(',')
+CORS_ALLOWED_ORIGINS = os.getenv('CORS_ALLOWED_ORIGINS', 'http://localhost:8080,http://localhost:8081').split(',')
 
 # Celery 설정
 CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL', 'redis://localhost:6379/0')
