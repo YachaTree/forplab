@@ -228,10 +228,35 @@ class TeamJoinRequestCreateView(generics.CreateAPIView):
             from rest_framework.exceptions import ValidationError
             raise ValidationError("이미 팀원입니다.")
         
-        # 이미 가입 신청한 경우 중복 신청 불가
-        if TeamJoinRequest.objects.filter(team=team, user=self.request.user, status='PENDING').exists():
-            from rest_framework.exceptions import ValidationError
-            raise ValidationError("이미 가입 신청을 했습니다.")
+        # 이미 가입 신청이 있는지 확인
+        existing_request = TeamJoinRequest.objects.filter(team=team, user=self.request.user).first()
+        
+        if existing_request:
+            # 이미 대기 중인 가입 신청이 있는 경우
+            if existing_request.status == 'PENDING':
+                from rest_framework.exceptions import ValidationError
+                raise ValidationError("이미 가입 신청을 했습니다.")
+            # 이미 거절된 가입 신청이 있는 경우, 상태를 PENDING으로 변경하고 메시지와 포지션 업데이트
+            elif existing_request.status == 'REJECTED':
+                existing_request.status = 'PENDING'
+                existing_request.message = serializer.validated_data.get('message', '')
+                existing_request.position = serializer.validated_data.get('position', '')
+                existing_request.save()
+                print(f"거절된 가입 신청을 다시 활성화: 팀={team.id}, 사용자={self.request.user.id}")
+                return
+            # 이미 수락된 가입 신청이 있는 경우
+            elif existing_request.status == 'ACCEPTED':
+                # 팀원이 아닌데 수락된 가입 신청이 있는 경우, 상태를 PENDING으로 변경하고 메시지와 포지션 업데이트
+                if not TeamMember.objects.filter(team=team, user=self.request.user).exists():
+                    existing_request.status = 'PENDING'
+                    existing_request.message = serializer.validated_data.get('message', '')
+                    existing_request.position = serializer.validated_data.get('position', '')
+                    existing_request.save()
+                    print(f"수락되었지만 팀원이 아닌 가입 신청을 다시 활성화: 팀={team.id}, 사용자={self.request.user.id}")
+                    return
+                else:
+                    from rest_framework.exceptions import ValidationError
+                    raise ValidationError("이미 수락된 가입 신청이 있습니다. 팀원 목록을 확인해주세요.")
         
         try:
             # 저장 시도
@@ -288,7 +313,7 @@ class TeamJoinRequestAcceptView(generics.GenericAPIView):
                 from django.db import transaction
                 with transaction.atomic():
                     # 팀원 생성
-                    TeamMember.objects.create(
+                    team_member = TeamMember.objects.create(
                         team=team,
                         user=join_request.user,
                         role='PLAYER',
@@ -299,7 +324,7 @@ class TeamJoinRequestAcceptView(generics.GenericAPIView):
                     join_request.status = 'ACCEPTED'
                     join_request.save()
                 
-                print(f"가입 신청 수락 성공: 팀={team_id}, 요청={request_id}, 사용자={join_request.user.id}")
+                print(f"가입 신청 수락 성공: 팀={team_id}, 요청={request_id}, 사용자={join_request.user.id}, 팀원 ID={team_member.id}")
                 
                 return Response(
                     {"detail": "가입 신청이 수락되었습니다."},
