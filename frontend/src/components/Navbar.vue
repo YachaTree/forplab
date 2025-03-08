@@ -9,6 +9,9 @@
         <router-link to="/matches" class="nav-link">매치</router-link>
         <router-link to="/venues" class="nav-link">구장</router-link>
         <router-link to="/teams" class="nav-link">팀</router-link>
+        <router-link to="/users/search" class="nav-link" v-if="isAuthenticated">
+          <i class="fas fa-search"></i> 사용자 검색
+        </router-link>
       </div>
       
       <div class="navbar-actions">
@@ -31,6 +34,9 @@
               </router-link>
               <router-link to="/my-teams" class="dropdown-item">
                 <i class="fas fa-users"></i> 내 팀
+              </router-link>
+              <router-link to="/users/search" class="dropdown-item">
+                <i class="fas fa-search"></i> 사용자 검색
               </router-link>
               <div class="dropdown-divider"></div>
               <a href="#" class="dropdown-item" @click.prevent="logout">

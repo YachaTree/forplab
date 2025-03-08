@@ -1,8 +1,9 @@
 from django.shortcuts import render
-from rest_framework import generics, permissions, status
+from rest_framework import generics, permissions, status, filters
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.contrib.auth import get_user_model
+from django.db.models import Q
 from .serializers import (
     UserSerializer, 
     UserRegistrationSerializer, 
@@ -150,3 +151,34 @@ class PasswordChangeView(APIView):
             user.save()
             return Response({"message": "비밀번호가 성공적으로 변경되었습니다."}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class UserSearchView(generics.ListAPIView):
+    """
+    사용자 검색 API
+    
+    username, email, skill_level 등으로 사용자를 검색할 수 있습니다.
+    ?search=검색어 형태로 요청하면 username과 email에서 검색합니다.
+    ?skill_level=BEG 형태로 요청하면 특정 실력 수준의 사용자만 검색합니다.
+    """
+    serializer_class = UserSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['username', 'email']
+    
+    def get_queryset(self):
+        queryset = User.objects.all()
+        
+        # 실력 수준으로 필터링
+        skill_level = self.request.query_params.get('skill_level', None)
+        if skill_level:
+            queryset = queryset.filter(skill_level=skill_level)
+        
+        # 추가 검색 조건
+        search = self.request.query_params.get('search', None)
+        if search:
+            queryset = queryset.filter(
+                Q(username__icontains=search) | 
+                Q(email__icontains=search)
+            )
+        
+        return queryset

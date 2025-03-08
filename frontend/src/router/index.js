@@ -8,6 +8,7 @@ const Register = () => import('@/views/Register.vue');
 const MatchList = () => import('@/views/matches/MatchList.vue');
 const MatchDetail = () => import('@/views/matches/MatchDetail.vue');
 const MatchCreate = () => import('@/views/matches/MatchCreate.vue');
+const UserSearch = () => import('@/views/users/search/UserSearch.vue');
 import VenueList from '../views/venues/VenueList.vue'
 import VenueDetail from '../views/venues/VenueDetail.vue'
 import TeamList from '../views/teams/TeamList.vue'
@@ -39,6 +40,18 @@ const routes = [
   {
     path: '/profile',
     name: 'CurrentUserProfile',
+    component: () => import('../views/users/Profile.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/users/search',
+    name: 'UserSearch',
+    component: UserSearch,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/users/:id',
+    name: 'UserProfile',
     component: () => import('../views/users/Profile.vue'),
     meta: { requiresAuth: true },
   },
@@ -92,12 +105,6 @@ const routes = [
     name: 'TeamManage',
     component: TeamManage,
     props: true,
-    meta: { requiresAuth: true }
-  },
-  {
-    path: '/users/:id',
-    name: 'UserProfile',
-    component: () => import('../views/users/Profile.vue'),
     meta: { requiresAuth: true }
   },
   {

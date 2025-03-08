@@ -152,6 +152,18 @@ export const authAPI = {
     
     return apiClient.put('/users/profile/update/', profileData, { headers });
   },
+  searchUsers(params) {
+    console.log('사용자 검색 요청:', params);
+    return apiClient.get('/users/search/', { params })
+      .then(response => {
+        console.log('사용자 검색 응답:', response.data);
+        return response;
+      })
+      .catch(error => {
+        console.error('사용자 검색 실패:', error.response ? error.response.data : error.message);
+        throw error;
+      });
+  },
 };
 
 // 매치 관련 API

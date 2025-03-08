@@ -639,273 +639,398 @@ export default {
   padding: 20px;
 }
 
-.loading-message, .error-message, .empty-message {
+/* 로딩 및 에러 메시지 */
+.loading-message,
+.error-message {
   text-align: center;
-  padding: 20px;
-  margin: 20px 0;
-  background-color: #f8f9fa;
-  border-radius: 8px;
+  padding: 40px 0;
+  background-color: var(--white);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow);
+  margin-bottom: 20px;
+}
+
+.loading-message {
+  position: relative;
+  min-height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.loading-message::after {
+  content: '';
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  border: 4px solid var(--primary-light);
+  border-top: 4px solid var(--primary-color);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-top: 40px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 .error-message {
-  color: #dc3545;
-  background-color: #f8d7da;
+  color: #e53935;
 }
 
+.error-message button {
+  background-color: #e53935;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: var(--border-radius);
+  margin-top: 10px;
+  transition: background-color 0.3s;
+}
+
+.error-message button:hover {
+  background-color: #c62828;
+}
+
+/* 프로필 컨텐츠 */
+.profile-content {
+  background-color: var(--white);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  animation: fadeIn 0.5s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* 프로필 헤더 */
 .profile-header {
   display: flex;
-  align-items: center;
-  margin-bottom: 30px;
-  padding: 20px;
-  background-color: #fff;
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  padding: 30px;
+  background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+  color: var(--white);
+  position: relative;
 }
 
 .profile-avatar {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 4px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   margin-right: 30px;
+  flex-shrink: 0;
+  transition: transform 0.3s;
+}
+
+.profile-avatar:hover {
+  transform: scale(1.05);
 }
 
 .profile-avatar img {
-  width: 150px;
-  height: 150px;
-  border-radius: 50%;
+  width: 100%;
+  height: 100%;
   object-fit: cover;
-  border: 3px solid #4CAF50;
 }
 
 .profile-info {
-  flex: 1;
+  flex-grow: 1;
 }
 
 .username {
-  font-size: 2rem;
-  margin: 0 0 5px 0;
-  color: #333;
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 5px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .user-email {
-  color: #666;
-  margin: 0 0 15px 0;
+  font-size: 16px;
+  opacity: 0.9;
+  margin-bottom: 20px;
 }
 
 .user-stats {
   display: flex;
-  margin-bottom: 15px;
+  flex-wrap: wrap;
+  gap: 20px;
+  margin-bottom: 20px;
 }
 
 .stat-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin-right: 20px;
-  padding: 10px 15px;
-  background-color: #f8f9fa;
-  border-radius: 8px;
+  text-align: center;
+  min-width: 60px;
 }
 
 .stat-value {
-  font-size: 1.5rem;
-  font-weight: bold;
-  color: #4CAF50;
+  font-size: 24px;
+  font-weight: 700;
+  display: block;
 }
 
 .stat-label {
-  font-size: 0.8rem;
-  color: #666;
+  font-size: 14px;
+  opacity: 0.9;
 }
 
 .user-level {
-  margin-bottom: 15px;
-}
-
-.level-label {
-  font-weight: bold;
-  margin-right: 5px;
-}
-
-.level-value {
-  color: #4CAF50;
+  display: inline-block;
+  background-color: rgba(255, 255, 255, 0.2);
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 14px;
+  margin-top: 10px;
 }
 
 .user-actions {
-  margin-top: 15px;
+  position: absolute;
+  top: 30px;
+  right: 30px;
 }
 
 .edit-profile-btn {
-  padding: 8px 15px;
-  background-color: #4CAF50;
-  color: white;
+  background-color: rgba(255, 255, 255, 0.2);
+  color: var(--white);
   border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.9rem;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  transition: background-color 0.3s;
 }
 
 .edit-profile-btn:hover {
-  background-color: #45a049;
+  background-color: rgba(255, 255, 255, 0.3);
 }
 
+.edit-profile-btn i {
+  margin-right: 6px;
+}
+
+/* 탭 메뉴 */
 .tab-menu {
   display: flex;
-  margin-bottom: 20px;
-  border-bottom: 1px solid #ddd;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .tab-item {
-  padding: 10px 20px;
+  padding: 15px 20px;
+  font-size: 16px;
+  font-weight: 500;
   cursor: pointer;
-  border-bottom: 3px solid transparent;
-  transition: all 0.3s;
+  position: relative;
+  transition: color 0.3s;
+  display: flex;
+  align-items: center;
+}
+
+.tab-item i {
+  margin-right: 8px;
+  font-size: 18px;
 }
 
 .tab-item:hover {
-  background-color: #f8f9fa;
+  color: var(--primary-color);
 }
 
 .tab-item.active {
-  border-bottom-color: #4CAF50;
-  color: #4CAF50;
+  color: var(--primary-color);
 }
 
+.tab-item.active::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background-color: var(--primary-color);
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+/* 탭 컨텐츠 */
 .tab-content {
-  background-color: #fff;
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  padding: 20px;
+  padding: 30px;
+  min-height: 300px;
+}
+
+/* 기본 정보 탭 */
+.info-section {
+  max-width: 600px;
 }
 
 .info-section h3 {
-  margin-top: 0;
-  color: #333;
-  border-bottom: 1px solid #eee;
+  font-size: 20px;
+  margin-bottom: 20px;
+  color: var(--text-color);
+  border-bottom: 1px solid var(--border-color);
   padding-bottom: 10px;
 }
 
 .info-row {
   display: flex;
   margin-bottom: 15px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .info-label {
   width: 120px;
-  font-weight: bold;
-  color: #666;
+  font-weight: 500;
+  color: var(--text-light);
+  flex-shrink: 0;
 }
 
 .info-value {
-  flex: 1;
+  flex-grow: 1;
 }
 
 .bio-text {
   white-space: pre-line;
+  line-height: 1.6;
 }
 
-.teams-grid, .matches-list {
+/* 소속 팀 탭 */
+.teams-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 20px;
 }
 
 .team-card {
-  display: flex;
-  align-items: center;
-  padding: 15px;
-  background-color: #f8f9fa;
-  border-radius: 8px;
+  background-color: var(--white);
+  border-radius: var(--border-radius);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
   cursor: pointer;
-  transition: all 0.3s;
+  transition: transform 0.3s, box-shadow 0.3s;
 }
 
 .team-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-5px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
 }
 
 .team-logo {
-  margin-right: 15px;
+  height: 140px;
+  overflow: hidden;
+  background-color: #f5f5f5;
 }
 
 .team-logo img {
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
+  width: 100%;
+  height: 100%;
   object-fit: cover;
 }
 
 .team-info {
-  flex: 1;
+  padding: 15px;
 }
 
 .team-name {
-  margin: 0 0 5px 0;
-  color: #333;
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 5px;
 }
 
 .team-level, .team-region {
-  margin: 0;
-  font-size: 0.9rem;
-  color: #666;
+  font-size: 14px;
+  color: var(--text-light);
+  margin-bottom: 5px;
+}
+
+/* 참여 경기 탭 */
+.matches-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
 }
 
 .match-item {
   display: flex;
   align-items: center;
   padding: 15px;
-  background-color: #f8f9fa;
-  border-radius: 8px;
+  background-color: var(--white);
+  border-radius: var(--border-radius);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   cursor: pointer;
-  transition: all 0.3s;
+  transition: transform 0.3s, box-shadow 0.3s;
 }
 
 .match-item:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateX(5px);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
 }
 
 .match-date {
   width: 120px;
-  font-weight: bold;
+  font-size: 14px;
+  color: var(--text-light);
+  flex-shrink: 0;
 }
 
 .match-title {
-  flex: 1;
-  font-weight: bold;
+  flex-grow: 1;
+  font-weight: 500;
+  margin: 0 15px;
 }
 
 .match-venue {
   width: 150px;
-  color: #666;
+  font-size: 14px;
+  color: var(--text-light);
+  flex-shrink: 0;
 }
 
 .match-status {
-  width: 80px;
+  width: 100px;
   text-align: center;
-  padding: 3px 8px;
-  border-radius: 4px;
-  font-size: 0.8rem;
+  padding: 4px 8px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 500;
+  flex-shrink: 0;
 }
 
 .status-open {
-  background-color: #d4edda;
-  color: #155724;
+  background-color: #e3f2fd;
+  color: #1976d2;
 }
 
 .status-closed {
-  background-color: #cce5ff;
-  color: #004085;
-}
-
-.status-canceled {
-  background-color: #f8d7da;
-  color: #721c24;
+  background-color: #ffebee;
+  color: #d32f2f;
 }
 
 .status-completed {
-  background-color: #e2e3e5;
-  color: #383d41;
+  background-color: #e8f5e9;
+  color: #388e3c;
 }
 
+.status-canceled {
+  background-color: #f5f5f5;
+  color: #757575;
+}
+
+/* 빈 메시지 */
+.empty-message {
+  text-align: center;
+  padding: 40px 0;
+  color: var(--text-lighter);
+}
+
+/* 프로필 수정 모달 */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -914,106 +1039,141 @@ export default {
   bottom: 0;
   background-color: rgba(0, 0, 0, 0.5);
   display: flex;
-  justify-content: center;
   align-items: center;
+  justify-content: center;
   z-index: 1000;
+  animation: fadeIn 0.3s;
 }
 
 .modal-content {
-  background-color: #fff;
-  border-radius: 8px;
-  padding: 20px;
+  background-color: var(--white);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow);
   width: 90%;
   max-width: 600px;
   max-height: 90vh;
   overflow-y: auto;
+  padding: 30px;
+  animation: scaleIn 0.3s;
 }
 
-.edit-profile-form .form-group {
-  margin-bottom: 15px;
+@keyframes scaleIn {
+  from { transform: scale(0.9); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
 }
 
-.edit-profile-form label {
-  display: block;
+.modal-content h2 {
+  font-size: 24px;
+  margin-bottom: 20px;
+  color: var(--text-color);
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 10px;
+}
+
+.edit-profile-form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group label {
+  font-size: 14px;
+  font-weight: 500;
   margin-bottom: 5px;
-  font-weight: bold;
+  color: var(--text-light);
 }
 
-.edit-profile-form input,
-.edit-profile-form select,
-.edit-profile-form textarea {
-  width: 100%;
-  padding: 8px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
+.form-group input,
+.form-group select,
+.form-group textarea {
+  padding: 10px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  font-size: 16px;
+  transition: border-color 0.3s;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  border-color: var(--primary-color);
+  outline: none;
+}
+
+.readonly-input {
+  background-color: #f5f5f5;
+  cursor: not-allowed;
+}
+
+.image-upload-container {
+  margin-top: 5px;
+}
+
+.image-hint {
+  font-size: 12px;
+  color: var(--text-lighter);
+  margin-top: 5px;
+}
+
+.selected-image {
+  margin-top: 10px;
+  padding: 10px;
+  background-color: var(--primary-light);
+  border-radius: var(--border-radius);
 }
 
 .form-actions {
   display: flex;
   justify-content: flex-end;
+  gap: 10px;
   margin-top: 20px;
 }
 
 .cancel-btn {
-  padding: 8px 15px;
-  background-color: #f8f9fa;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  margin-right: 10px;
-  cursor: pointer;
+  padding: 10px 20px;
+  background-color: #f5f5f5;
+  color: var(--text-color);
+  border: none;
+  border-radius: var(--border-radius);
+  font-size: 16px;
+  transition: background-color 0.3s;
+}
+
+.cancel-btn:hover {
+  background-color: #e0e0e0;
 }
 
 .save-btn {
-  padding: 8px 15px;
-  background-color: #4CAF50;
+  padding: 10px 20px;
+  background-color: var(--primary-color);
   color: white;
   border: none;
-  border-radius: 4px;
-  cursor: pointer;
+  border-radius: var(--border-radius);
+  font-size: 16px;
+  transition: background-color 0.3s;
 }
 
-.save-btn:hover {
-  background-color: #45a049;
+.save-btn:hover:not(:disabled) {
+  background-color: var(--primary-dark);
 }
 
 .save-btn:disabled {
-  background-color: #cccccc;
+  opacity: 0.7;
   cursor: not-allowed;
 }
 
-.readonly-input {
-  background-color: #f8f9fa;
-  cursor: not-allowed;
-}
-
-.image-upload-container {
-  position: relative;
-}
-
-.image-hint {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  padding: 5px;
-  background-color: #f8f9fa;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 0.8rem;
-}
-
-.selected-image {
-  margin-top: 5px;
-  padding: 5px;
-  background-color: #f8f9fa;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-}
-
+/* 반응형 디자인 */
 @media (max-width: 768px) {
   .profile-header {
     flex-direction: column;
+    align-items: center;
     text-align: center;
+    padding: 20px;
   }
   
   .profile-avatar {
@@ -1023,7 +1183,23 @@ export default {
   
   .user-stats {
     justify-content: center;
-    flex-wrap: wrap;
+  }
+  
+  .user-actions {
+    position: static;
+    margin-top: 20px;
+    display: flex;
+    justify-content: center;
+  }
+  
+  .tab-menu {
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .tab-content {
+    padding: 20px;
   }
   
   .info-row {
@@ -1035,10 +1211,6 @@ export default {
     margin-bottom: 5px;
   }
   
-  .teams-grid, .matches-list {
-    grid-template-columns: 1fr;
-  }
-  
   .match-item {
     flex-direction: column;
     align-items: flex-start;
@@ -1046,7 +1218,48 @@ export default {
   
   .match-date, .match-venue, .match-status {
     width: 100%;
-    margin-bottom: 5px;
+    margin-top: 5px;
+  }
+  
+  .match-title {
+    margin: 5px 0;
+  }
+  
+  .modal-content {
+    padding: 20px;
+    width: 95%;
+  }
+}
+
+@media (max-width: 480px) {
+  .profile-avatar {
+    width: 100px;
+    height: 100px;
+  }
+  
+  .username {
+    font-size: 24px;
+  }
+  
+  .user-email {
+    font-size: 14px;
+  }
+  
+  .stat-value {
+    font-size: 20px;
+  }
+  
+  .stat-label {
+    font-size: 12px;
+  }
+  
+  .tab-item {
+    padding: 12px 15px;
+    font-size: 14px;
+  }
+  
+  .tab-item i {
+    font-size: 16px;
   }
 }
 </style> 

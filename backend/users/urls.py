@@ -16,6 +16,9 @@ urlpatterns = [
     path('profile/update/', views.UserProfileUpdateView.as_view(), name='profile_update'),
     path('profile/<str:username>/', views.UserDetailView.as_view(), name='user_detail'),
     
+    # 사용자 검색 API
+    path('search/', views.UserSearchView.as_view(), name='user_search'),
+    
     # 사용자 ID로 프로필 조회
     path('<int:pk>/', views.UserDetailByIdView.as_view(), name='user_detail_by_id'),
     path('<int:pk>/teams/', views.UserTeamsView.as_view(), name='user_teams'),

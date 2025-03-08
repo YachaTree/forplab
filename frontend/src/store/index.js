@@ -9,13 +9,19 @@ const auth = {
     token: localStorage.getItem('token') || null,
     isAuthenticated: !!localStorage.getItem('token'),
     loading: false,
-    error: null
+    error: null,
+    searchResults: [], // 사용자 검색 결과
+    searchLoading: false, // 검색 로딩 상태
+    searchError: null // 검색 에러
   },
   getters: {
     isAuthenticated: state => state.isAuthenticated,
     user: state => state.user,
     loading: state => state.loading,
-    error: state => state.error
+    error: state => state.error,
+    searchResults: state => state.searchResults,
+    searchLoading: state => state.searchLoading,
+    searchError: state => state.searchError
   },
   mutations: {
     SET_TOKEN(state, token) {
@@ -35,6 +41,15 @@ const auth = {
     },
     SET_ERROR(state, error) {
       state.error = error
+    },
+    SET_SEARCH_RESULTS(state, results) {
+      state.searchResults = results
+    },
+    SET_SEARCH_LOADING(state, loading) {
+      state.searchLoading = loading
+    },
+    SET_SEARCH_ERROR(state, error) {
+      state.searchError = error
     }
   },
   actions: {
@@ -166,6 +181,25 @@ const auth = {
         console.error('에러 상세:', error.response ? error.response.data : error.message);
         commit('SET_ERROR', error.message || '프로필 정보 업데이트에 실패했습니다.')
         commit('SET_LOADING', false)
+        throw error
+      }
+    },
+    
+    async searchUsers({ commit }, params) {
+      commit('SET_SEARCH_LOADING', true)
+      commit('SET_SEARCH_ERROR', null)
+      try {
+        console.log('searchUsers 액션 호출됨, 파라미터:', params);
+        const response = await authAPI.searchUsers(params)
+        console.log('사용자 검색 응답:', response.data);
+        
+        commit('SET_SEARCH_RESULTS', response.data)
+        commit('SET_SEARCH_LOADING', false)
+        return response
+      } catch (error) {
+        console.error('사용자 검색 실패:', error)
+        commit('SET_SEARCH_ERROR', error.message || '사용자 검색에 실패했습니다.')
+        commit('SET_SEARCH_LOADING', false)
         throw error
       }
     }
