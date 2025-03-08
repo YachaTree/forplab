@@ -73,9 +73,17 @@ class TeamMember(models.Model):
         ('PLAYER', '선수'),
     ]
     
+    POSITION_CHOICES = [
+        ('GK', '골키퍼'),
+        ('DF', '수비수'),
+        ('MF', '미드필더'),
+        ('FW', '공격수'),
+    ]
+    
     team = models.ForeignKey(Team, on_delete=models.CASCADE)
     user = models.ForeignKey('users.User', on_delete=models.CASCADE)
     role = models.CharField(_('역할'), max_length=10, choices=ROLE_CHOICES, default='PLAYER')
+    position = models.CharField(_('포지션'), max_length=2, choices=POSITION_CHOICES, blank=True, null=True)
     joined_at = models.DateTimeField(_('가입일'), auto_now_add=True)
     
     class Meta:
@@ -96,9 +104,17 @@ class TeamJoinRequest(models.Model):
         ('REJECTED', '거절됨'),
     ]
     
+    POSITION_CHOICES = [
+        ('GK', '골키퍼'),
+        ('DF', '수비수'),
+        ('MF', '미드필더'),
+        ('FW', '공격수'),
+    ]
+    
     team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name='join_requests')
     user = models.ForeignKey('users.User', on_delete=models.CASCADE, related_name='team_requests')
     message = models.TextField(_('가입 메시지'), blank=True)
+    position = models.CharField(_('포지션'), max_length=2, choices=POSITION_CHOICES, blank=True, null=True)
     status = models.CharField(_('상태'), max_length=10, choices=STATUS_CHOICES, default='PENDING')
     created_at = models.DateTimeField(_('요청일'), auto_now_add=True)
     updated_at = models.DateTimeField(_('처리일'), auto_now=True)
@@ -106,7 +122,7 @@ class TeamJoinRequest(models.Model):
     class Meta:
         verbose_name = _('팀 가입 요청')
         verbose_name_plural = _('팀 가입 요청들')
-        unique_together = ('team', 'user', 'status')  # 동일한 상태의 중복 요청 방지
+        unique_together = ('team', 'user')  # 한 사용자는 한 팀에 대해 하나의 가입 요청만 가능
         
     def __str__(self):
         return f"{self.user.username} -> {self.team.name} ({self.get_status_display()})"
